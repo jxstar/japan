@@ -1,3 +1,18 @@
+---
+title: "基于“Trend-ShareVolatility-LinearRegression”方法的日本旅游人数预测201505"
+author: "Jin Xin"
+date: "2015年6月10日"
+output: html_document
+---
+
+# 1 前言
+
+本文是采用了“Trend-ShareVolatility-LinearRegression”交叉验证的方式进行日本旅游人数预测。线性回归的方法是321376人，其他两个benchmark为32.9万和33.3万，可以采用与其他两个benchmark取均值的方法来得到最终结果（327894）。具体结果见第三章。
+
+# 2 分析过程图
+
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+
 library(quantmod)
 library(leaps)
 library(Hmisc) #describe
@@ -24,8 +39,11 @@ par(mfrow=c(1,1))
 mycolor=rainbow(20)
 
 
+```
 
+## 2.1 历史数据展示
 
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
 #=================================================================================================
 #1# read the data
 
@@ -61,11 +79,11 @@ print(p2)
 p3 <- ggplot(filter(jp,year %in% c(2002:2015),month %in% c(1:5)), aes(year, arrival))
 p4 <- p3 + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))
 print(p4)
+```
 
+## 2.2 Y2Y Trend  趋势模型
 
-
-
-
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
 #=================================================================================================
 #3 predict with the Y2Y Trend
 #combination
@@ -123,9 +141,11 @@ print(p1)
 p <- ggplot(mdmpjp, aes(year, value))
 p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))
 print(p1)
+```
 
+## 2.3 Share Volatility 模型
 
-
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
 
 #=================================================================================================
 #4 predict with the month data share Volatility
@@ -182,7 +202,6 @@ recentshare=recentshare[-(which(names(recentshare)=="year"))]
 #recentshare=as.vector(as.matrix(recentshare))
 
 currentyear=vjp[which(vjp$year==current),]
-names(medianshare)
 
 predict.sv.median=data.frame(
   m34=medianshare$m34*currentyear$m34,
@@ -196,8 +215,6 @@ predict.sv.median=data.frame(
   m345dm1a2=medianshare$m345dm1a2*currentyear$m1a2-currentyear$m3-currentyear$m4,
   m45dm1a2=medianshare$m45dm1a2*currentyear$m1a2-currentyear$m4,
   m1a2=medianshare$m1a2*currentyear$m1a2  )
-predict.sv.median
-medianshare
 
 
 #recent is better
@@ -214,9 +231,6 @@ predict.sv.recent=data.frame(
   m45dm1a2=recentshare$m45dm1a2*currentyear$m1a2-currentyear$m4,
   m1a2=recentshare$m1a2*currentyear$m1a2  )
 predict.sv.recent=predict.sv.recent[,names(recentshare)]
-predict.sv.recent;rowMeans(predict.sv.recent);median(as.matrix(predict.sv.recent));range(predict.sv.recent)
-
-
 
 benchmark=rbind(benchmark,
                 data.frame(date=as.Date("2015-05-01"),methdology="ShareVolatility-recent",
@@ -224,9 +238,11 @@ benchmark=rbind(benchmark,
                            interval.high=range(predict.sv.recent)[2],
                            bestguess=median(as.matrix(predict.sv.recent))))
 
-benchmark
+```
 
+## 2.4 线性回归模型
 
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
 #=================================================================================================
 #5 predict with linear regression method
 
@@ -241,7 +257,7 @@ names(hotword)=hwname
 for (i in 2:ncol(hotword)){
   for (j in 1:nrow(hotword)){
     if (hotword[j,i]<(mean(hotword[,i])/100)){
-      cat(i,j,hotword[j,i],mean(hotword[,i]),hotword[j-1,i],"\n")
+      #cat(i,j,hotword[j,i],mean(hotword[,i]),hotword[j-1,i],"\n")
       hotword[j,i]=hotword[j-1,i]
     }
   }
@@ -290,11 +306,11 @@ cat("The Date We Use in this algorithm\n", as.character(usefuldate),"\n")
 hwm.t=hwm[which(hwm$date==as.Date("2014-01-01")):which(hwm$date==as.Date("2015-04-01")),]
 hwm.p=hwm[which(hwm$date==as.Date("2015-05-01")):which(hwm$date==as.Date("2015-05-01")),]
 
-cat("The correlation of the hotwords we may select:\n")
+#cat("The correlation of the hotwords we may select:\n")
 hwm.cor=cor(hwm.t$arrival,hwm.t[,3:16])
-names(hwm.t[,3:16])[order(-hwm.cor)]
+#names(hwm.t[,3:16])[order(-hwm.cor)]
 
-corrgram(hwm.t[,3:16],order=T,lower.panel=panel.shade,upper.panel=panel.pie, text.panel=panel.txt)
+#corrgram(hwm.t[,3:16],order=T,lower.panel=panel.shade,upper.panel=panel.pie, text.panel=panel.txt)
 
 test=select(hwm,date,arrival,zyx1,lyqz1,lygl1,gwgl,arrival12,jg,jd,sp,sumall)
 
@@ -311,7 +327,7 @@ for (i in (1:(ncol(test)-2))){
   mtest=melt(test1,id="date")
   p <- ggplot(mtest, aes(date, value))
   p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))
-  print(p1)
+  #print(p1)
   
 }
 
@@ -322,11 +338,11 @@ for (i in (1:(ncol(test)-2))){
 #leaps=regsubsets(arrival~ly+tq+jd+lyqz+jg+lvgl+yh+zyx+gwgl+sp+arrival1+arrival12+
 #                   holiday+nbmonth+newyear+ctriphotel+ctripreview,data=hwm.t,nbest=3)
 
-names(hwm.t[,3:16])[order(-hwm.cor)]
+#names(hwm.t[,3:16])[order(-hwm.cor)]
 leaps=regsubsets(arrival~zyx1+lyqz1+lygl1+gwgl+lygl+arrival12+jg+ly1+jd+arrival1+zyx+lyqz+ly+
                    holiday+nbmonth+newyear,data=hwm.t,nbest=4)
 leaps=regsubsets(arrival~zyx1+lyqz1+lygl1+gwgl+arrival12+jg+ly1+jd+holiday+nbmonth+newyear,data=hwm.t,nbest=5)
-plot(leaps,scale="adjr2")
+#plot(leaps,scale="adjr2")
 
 #3.1 fit--------------------------------------------------------------fit
 if(F){
@@ -341,15 +357,14 @@ if(F){
 
 hwfit=lm(arrival~zyx1+jg+newyear,hwm.t)#32.1 for May
 
-cat("The hotwords we use to predict: jiage lvyou newyear\n")
-cat("The predic result:",predict(hwfit,newdata=hwm.p),"\n")
+#cat("The predic result:",predict(hwfit,newdata=hwm.p),"\n")
 
 
-summary(hwfit)
+#summary(hwfit)
 gvmodel=gvlma(hwfit)
-summary(gvmodel)
+#summary(gvmodel)
 #multicollinearily
-sqrt(vif(hwfit))
+#sqrt(vif(hwfit))
 
 
 
@@ -363,18 +378,16 @@ plot(hwm$date,hwm$arrival,type="b",lty=1,xlab="date",col=mycolor[1],ylim=c(0,400
 legend("topleft",legend=c("official", "predict","jiage","lvyou lagged 1m"),lty=c(1,1,1,1),col=mycolor[c(1,3,5,7)])
 lines(usefuldate,c(fitted(hwfit),hwm.p$arrival),type="b",pty=2,col=mycolor[3])
 #lines(usefuldate,c(fitted(percentfit)*(585400),hwm.p$nd12*585400),type="b",pty=2,col=mycolor[9])
-lines(hwm$date,hwm$jg*10,type="b",cex=1,lty=1,xlab="date",col=mycolor[5])
+#lines(hwm$date,hwm$jg*10,type="b",cex=1,lty=1,xlab="date",col=mycolor[5])
 
 #3.3 evalation--------------------------------------------------------evaluation
 mse=sum(((fitted(hwfit)-hwm.t$arrival)/hwm.t$arrival)^2)^(1/2)
-cat("lag=",lag," mse=",mse,"\n")
+#cat("lag=",lag," mse=",mse,"\n")
 error=(fitted(hwfit)-hwm.t$arrival)/hwm.t$arrival
 hwm.t$predict=fitted(hwfit)
 hwm.t$error=error
 barplot(error,names.arg=hwm.t$date,ylab="ERROR")
 
-hwm.t[,c("date","arrival","predict","error")]
-hwm[,c("date","arrival")]
 
 benchmark=rbind(benchmark,
                 data.frame(date=as.Date("2015-05-01"),methdology="Linear Regression",
@@ -382,22 +395,22 @@ benchmark=rbind(benchmark,
                            interval.high=350000,
                            bestguess=hwm.p$arrival))
 
-benchmark
 
 
+```
 
 
+# 3 结论
 
+三种方法的结果如下表所示，线性回归的方法是321376人，其他两个benchmark为32.9和33.3，可以采用与其他两个benchmark取均值的方法来得到最终结果（327894）。
 
-
-
-jp.p=jp
-jp.p[which(jp.p$date==hwm.p$date),"arrival"]=hwm.p$arrival
-jp.p=jp.p[40:162,]
-plot(jp.p$date,jp.p$arrival,type="b",lty=1,xlab="date",col=mycolor[1],ylim=c(50000,400000))
-legend("topleft",legend=c("japan tourist number"),lty=c(1),col=mycolor[c(1)])
-
-jp.p[,1:2]
-
-save(file="japan.Rdata",japan,jp,hotword,hwm,currency)
-load("japan.Rdata")
+```{r, echo=FALSE,message=FALSE,warning=FALSE}
+cat("Mean Tourist Number: ",mean(benchmark$bestguess),"\n")
+print("Result Table")
+print(knitr::kable(benchmark))
+print("Predict Error Table")
+print(knitr::kable(hwm.t[,c("date","arrival","predict","error")]))      
+print("Tourist Number Table")
+print(knitr::kable(hwm[,c("date","arrival")]))      
+      
+```
