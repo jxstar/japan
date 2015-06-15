@@ -52,14 +52,17 @@ jp=japan
 
 #2.1 overall prosect---------------------------------------------------------
 p <- ggplot(jp, aes(month, arrival))
-p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))
+p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6,main="test")+
+  geom_point(aes(colour = factor(year)))+labs(title="JP History Tourist Number Groupby Year")
 print(p1)
 
-p2=p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+facet_wrap(~year)
+p2=p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+facet_wrap(~year)+
+  labs(title="JP History Tourist Number")
 print(p2)
 
 p3 <- ggplot(filter(jp,year %in% c(2002:2015),month %in% c(1:5)), aes(year, arrival))
-p4 <- p3 + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))
+p4 <- p3 + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
+  labs(title="JP History Tourist Number Groupby Month")
 print(p4)
 
 
@@ -278,6 +281,7 @@ hwm=transform(hwm,
               arrival=jp[which(jp$date==first(date)):which(jp$date==last(date)),"arrival"],
               arrival1=jp[which(jp$date==first(date)):which(jp$date==last(date)),"arrival1"],
               arrival12=jp[which(jp$date==first(date)):which(jp$date==last(date)),"arrival12"],
+              korea=jp[which(jp$date==first(date)):which(jp$date==last(date)),"korea"],
               holiday=jp[which(jp$date==first(date)):which(jp$date==last(date)),"holiday"],
               nbmonth=jp[which(jp$date==first(date)):which(jp$date==last(date)),"nbmonth"],
               newyear=jp[which(jp$date==first(date)):which(jp$date==last(date)),"newyear"])
@@ -291,22 +295,24 @@ hwm.t=hwm[which(hwm$date==as.Date("2014-01-01")):which(hwm$date==as.Date("2015-0
 hwm.p=hwm[which(hwm$date==as.Date("2015-05-01")):which(hwm$date==as.Date("2015-05-01")),]
 
 cat("The correlation of the hotwords we may select:\n")
-hwm.cor=cor(hwm.t$arrival,hwm.t[,3:16])
-names(hwm.t[,3:16])[order(-hwm.cor)]
+location=c(which(names(hwm.t)=="jd"):which(names(hwm.t)=="korea"))
+hwm.cor=cor(hwm.t$arrival,hwm.t[,location])
+names(hwm.t[,location])[order(-hwm.cor)]
+hwm.cor
 
-corrgram(hwm.t[,3:16],order=T,lower.panel=panel.shade,upper.panel=panel.pie, text.panel=panel.txt)
+corrgram(hwm.t[,location],order=T,lower.panel=panel.shade,upper.panel=panel.pie, text.panel=panel.txt)
 
-test=select(hwm,date,arrival,zyx1,lyqz1,lygl1,gwgl,arrival12,jg,jd,sp,sumall)
-
+test=select(hwm,date,arrival,zyx1,lyqz1,lygl1,gwgl,arrival12,jg,jd,sp,sumall,korea)
 test=transform(test,zyx1=zyx1*mean(arrival,na.rm=T)/mean(zyx1,na.rm=T),
                lyqz1=lyqz1*mean(arrival,na.rm=T)/mean(lyqz1,na.rm=T),
                lygl1=lygl1*mean(arrival,na.rm=T)/mean(lygl1,na.rm=T),
-               gwgl=gwgl*mean(arrival,na.rm=T)/mean(gwgl),
-               jg=jg*mean(arrival,na.rm=T)/mean(jg),
-               jd=jd*mean(arrival,na.rm=T)/mean(jd))
-
+               gwgl=gwgl*mean(arrival,na.rm=T)/mean(gwgl,na.rm=T),
+               jg=jg*mean(arrival,na.rm=T)/mean(jg,na.rm=T),
+               jd=jd*mean(arrival,na.rm=T)/mean(jd,na.rm=T),
+               korea=korea*mean(arrival,na.rm=T)/mean(korea,na.rm=T))
+test
 for (i in (1:(ncol(test)-2))){
-  test1=select(test,date,arrival,zyx1)
+  #test1=select(test,date,arrival,zyx1)
   test1=test[,c(1,2,i+2)]
   mtest=melt(test1,id="date")
   p <- ggplot(mtest, aes(date, value))
@@ -322,10 +328,10 @@ for (i in (1:(ncol(test)-2))){
 #leaps=regsubsets(arrival~ly+tq+jd+lyqz+jg+lvgl+yh+zyx+gwgl+sp+arrival1+arrival12+
 #                   holiday+nbmonth+newyear+ctriphotel+ctripreview,data=hwm.t,nbest=3)
 
-names(hwm.t[,3:16])[order(-hwm.cor)]
+names(hwm.t[,location])[order(-hwm.cor)]
 leaps=regsubsets(arrival~zyx1+lyqz1+lygl1+gwgl+lygl+arrival12+jg+ly1+jd+arrival1+zyx+lyqz+ly+
                    holiday+nbmonth+newyear,data=hwm.t,nbest=4)
-leaps=regsubsets(arrival~zyx1+lyqz1+lygl1+gwgl+arrival12+jg+ly1+jd+holiday+nbmonth+newyear,data=hwm.t,nbest=5)
+leaps=regsubsets(arrival~zyx1+lyqz1+lygl1+gwgl+arrival12+jg+ly1+jd+korea+holiday+nbmonth+newyear,data=hwm.t,nbest=5)
 plot(leaps,scale="adjr2")
 
 #3.1 fit--------------------------------------------------------------fit
@@ -337,9 +343,11 @@ if(F){
   hwfit=glm(log(arrival)~I(log(jgnd12))+I(log(lynd12))+I(log(m12)),family=gaussian,hwm.t)#12
   hwfit=lm(log(arrival)~log(jg)+log(ly)+newyear,hwm.t)#12
   hwfit=lm(arrival~jg+ly+newyear,hwm.t)#35.5# April
+  hwfit=lm(arrival~zyx1+jg+newyear,hwm.t)#32.1 for May
 }
 
 hwfit=lm(arrival~zyx1+jg+newyear,hwm.t)#32.1 for May
+
 
 cat("The hotwords we use to predict: jiage lvyou newyear\n")
 cat("The predic result:",predict(hwfit,newdata=hwm.p),"\n")
