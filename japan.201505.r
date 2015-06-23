@@ -38,9 +38,13 @@ if (F){
   japan$arrival=as.numeric(japan$arrival)
 }
 
+
+
 japan=read.xlsx("japan.tourists.number.xlsx",1)
 japan$arrival1 = c(NA, japan$arrival[1:(nrow(japan)-1)]);
 japan$arrival12 = c(rep(NA, 12), japan$arrival[1:(nrow(japan)-12)]);
+#define the one stage differentcial
+japan$diff=japan$arrival-japan$arrival1
 japan$mm=japan$arrival/japan$arrival1
 japan$yy=japan$arrival/japan$arrival12
 japan$year=as.integer(format(as.Date(japan$date),"%Y"))
@@ -88,7 +92,7 @@ dmpjp=dmjp
 dmpjp[2:nrow(dmpjp),2:ncol(dmpjp)]=dmjp[2:nrow(dmjp),2:ncol(dmjp)]/dmjp[1:nrow(dmjp)-1,2:ncol(dmjp)]
 dmpjp[1,2:ncol(dmpjp)]=1
 
-# select the best Y2Y percentage
+# select the best Y2Y percentage : (mx-m5)/m5    which is the closest to the M5 Y2Y trend
 diffdmpjp=(dmpjp[,-c(which(names(dmpjp)=="year"),which(names(dmpjp)=="m5"))]-
            data.frame(dmpjp$m5,dmpjp$m5,dmpjp$m5,dmpjp$m5,dmpjp$m5,dmpjp$m5))/
           data.frame(dmpjp$m5,dmpjp$m5,dmpjp$m5,dmpjp$m5,dmpjp$m5,dmpjp$m5)
@@ -99,9 +103,13 @@ mean.trend.diff=colMeans(abs(diffdmpjp[-2,]),na.rm=T)
 #predict the M5 Y2Y trend;----------------------------------------------------------------
 #--date--method--key factor--result
 predict.y2y=dmpjp[which(dmpjp$year==2015),"m4"]
-#(pm4-pm5)/pm5=a===> pm5=pm4/(1+-a)
-#mean reverting:2013- 2014- so we predict 2015+ pm4>pm5, recent 3year, a=0.06
-predict.y2y=predict.y2y/(1+0.06)
+
+#(pm4-pm5)/pm5=a===> pm5=pm4/(1+a)
+#mean reverting:2013:-0.07 2014:-0.06 so we predict 2015+ pm4>pm5, recent 3year, a=0.06
+#however,in May 2015, a is still -0.08, which makes our prediction wrong
+#so, actually, we can not predict the "a", so we delete the following line
+
+#####predict.y2y=predict.y2y/(1+0.06)
 predict.tourist.y2y=predict.y2y*dmjp[which(dmpjp$year==2014),"m5"]
 
 dmjp[which(dmjp$year==2015),"m5"]=predict.tourist.y2y
@@ -128,8 +136,6 @@ p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(
 print(p1)
 
 
-
-
 #=================================================================================================
 #4 predict with the month data share Volatility
 #cast the data as year id and produce m1a2,m34-------------------
@@ -138,22 +144,95 @@ recent=current-1
 
 vjp=dcast(meltjp,year~month+variable)
 names(vjp)=c("year","m1","m2","m3","m4","m5")
-vjp$m1a2=(vjp$m1+vjp$m2)
-vjp$m34=(vjp$m3+vjp$m4)
-vjp$m1234=vjp$m1+vjp$m2+vjp$m3+vjp$m4
-vjp$m123=vjp$m1+vjp$m2+vjp$m3
-vjp$m124=vjp$m1+vjp$m2+vjp$m4
+vjp$m1a2=(vjp$m1+vjp$m2)/2
+vjp$m34=(vjp$m3+vjp$m4)/2
+vjp$m1234=(vjp$m1+vjp$m2+vjp$m3+vjp$m4)/4
+vjp$m123=(vjp$m1+vjp$m2+vjp$m3)/3
+vjp$m124=(vjp$m1+vjp$m2+vjp$m4)/3
 
 
+#=================================================================================================
+#4.1 predict with the month data differential method
+#define all of the KPI share:sjp
+sjp.data=select(vjp,m1234,m34,m1a2,m123,m124,m3,m4)
+sjp.data=vjp$m5-sjp.data
+#not perform very well
+if (T) {
+  sjp.data$m45dm1a2=(vjp$m5+vjp$m4)/2-vjp$m1a2
+  sjp.data$m45dm3=(vjp$m5+vjp$m4)/2-vjp$m3
+  sjp.data$m45dm123=(vjp$m5+vjp$m4)/2-vjp$m123
+  sjp.data$m345dm1a2=(vjp$m5+vjp$m34)/2-vjp$m1a2
+}
+
+#select the best KPI with lowest volatility whichh is sigma--------------------------
+sigma=apply(sjp.data,2,function (x) {
+  #x=x/mean(x,na.rm=T)
+  return(var(x,na.rm=T))
+})
+#sigma=apply(sjp,2,var,na.rm=T)
+sigma=sigma[order(sigma)]
+barplot(sigma[-length(sigma)])
+
+sjp.data=sjp.data[,names(sigma)]
+sjp=cbind(year=vjp$year,sjp.data)
+
+msjp=melt(sjp,id="year")
+p <- ggplot(msjp, aes(year, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))
+print(p1)
+
+#m5-m4=D
+# make a prediction of d, use the recent 4 years real D to predict this year D
+(p <- ggplot(filter(msjp,variable=="m4"), aes(year, value))+geom_line())
+mean.D=mean(tail(sjp.data$m4,4),na.rm=T)
+# make the prediction:m4+D
+currentyear=vjp[which(vjp$year==current),]
+predict.diff.recent=mean.D+currentyear$m4
+
+benchmark=rbind(benchmark,
+                data.frame(date=as.Date("2015-05-01"),methdology="Differential",
+                           interval.low=min(tail(sjp.data$m4,4))+currentyear$m4,
+                           interval.high=max(tail(sjp.data$m4,4))+currentyear$m4,
+                           bestguess=predict.diff.recent))
+
+benchmark
+
+# the following is for test
+if (F){
+  vjp
+  #recentshare=filter(sjp,year==recent);
+  diff.test=select(vjp,m5,m4,m3)
+  diff.test=transform(diff.test,m5=m5-m4,m4=m4-m3,m3=m3-vjp$m1a2)
+  diff.test
+  
+  sigma=apply(diff.test,2,function (x) {
+    return(var(x,na.rm=T))
+  })
+  sigma=sigma[order(sigma)]
+  barplot(sigma[-length(sigma)])
+  
+  diff.test=cbind(year=vjp$year,diff.test)
+  
+  msjp=melt(diff.test,id="year")
+  p <- ggplot(msjp, aes(year, value))
+  p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))
+  print(p1)
+  benchmark
+}
+
+
+
+#=================================================================================================
+#4.2 predict with the month data share Volatility
 #define all of the KPI share:sjp
 sjp.data=select(vjp,m1234,m34,m1a2,m123,m124,m3,m4)
 sjp.data=vjp$m5/sjp.data
 #not perform very well
 if (T) {
-  sjp.data$m45dm1a2=(vjp$m5+vjp$m4)/vjp$m1a2
-  sjp.data$m45dm3=(vjp$m5+vjp$m4)/vjp$m3
-  sjp.data$m45dm123=(vjp$m5+vjp$m4)/vjp$m123
-  sjp.data$m345dm1a2=(vjp$m5+vjp$m34)/vjp$m1a2
+  sjp.data$m45dm1a2=(vjp$m5+vjp$m4)/2/vjp$m1a2
+  sjp.data$m45dm3=(vjp$m5+vjp$m4)/2/vjp$m3
+  sjp.data$m45dm123=(vjp$m5+vjp$m4)/2/vjp$m123
+  sjp.data$m345dm1a2=(vjp$m5+vjp$m34)/2/vjp$m1a2
 }
 
 #select the best KPI with lowest volatility whichh is sigma--------------------------
@@ -207,27 +286,37 @@ medianshare
 predict.sv.recent=data.frame(
   m34=recentshare$m34*currentyear$m34,
   m3=recentshare$m3*currentyear$m3,
-  m45dm3=recentshare$m45dm3*currentyear$m3-currentyear$m4,
+  m45dm3=recentshare$m45dm3*currentyear$m3*2-currentyear$m4,
   m4=recentshare$m4*currentyear$m4,
   m1234=recentshare$m1234*currentyear$m1234,
-  m45dm123=recentshare$m45dm123*currentyear$m123-currentyear$m4,
+  m45dm123=recentshare$m45dm123*currentyear$m123*2-currentyear$m4,
   m123=recentshare$m123*currentyear$m123,
   m124=recentshare$m124*currentyear$m124,
-  m345dm1a2=recentshare$m345dm1a2*currentyear$m1a2-currentyear$m3-currentyear$m4,
-  m45dm1a2=recentshare$m45dm1a2*currentyear$m1a2-currentyear$m4,
+  m345dm1a2=recentshare$m345dm1a2*currentyear$m1a2*3-currentyear$m3-currentyear$m4,
+  m45dm1a2=recentshare$m45dm1a2*currentyear$m1a2*2-currentyear$m4,
   m1a2=recentshare$m1a2*currentyear$m1a2  )
 predict.sv.recent=predict.sv.recent[,names(recentshare)]
 predict.sv.recent;rowMeans(predict.sv.recent);median(as.matrix(predict.sv.recent));range(predict.sv.recent)
 
+bestguess=predict.sv.recent[1,"m4"]
 
 
 benchmark=rbind(benchmark,
                 data.frame(date=as.Date("2015-05-01"),methdology="ShareVolatility-recent",
                            interval.low=range(predict.sv.recent)[1],
                            interval.high=range(predict.sv.recent)[2],
-                           bestguess=median(as.matrix(predict.sv.recent))))
+                           bestguess))
+                           #bestguess=median(as.matrix(predict.sv.recent))))
 
 benchmark
+
+
+
+
+
+
+
+
 
 
 #=================================================================================================
@@ -391,6 +480,28 @@ benchmark=rbind(benchmark,
                            bestguess=hwm.p$arrival))
 
 benchmark
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
