@@ -131,26 +131,32 @@ diff12.fit=lm(m7~m56,dmpjp.t)
 summary(diff12.fit)
 predict(diff12.fit,newdata=dmpjp.p)
 dmpjp[which(dmpjp$year==2015),target.smon]=predict(diff12.fit,newdata=dmpjp.p)
+dmpjp$prediction=predict(diff12.fit,newdata=dmpjp)
+dmpjp$error=(dmpjp$prediction-dmpjp$m7)/dmjp$m7
 dmpjp
 
+msjp=melt(dmpjp[,c("m7","m56","prediction")],id="m56")
+p <- ggplot(msjp, aes(m56, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
+  labs(title="Y2Y Diff M7 VS M56 to Predict M7")
+print(p1)
 
-plot(dmpjp$m56,dmpjp$m7,type="p",pch=1,ylab="Y2Y DIFF M7",xlab="Y2Y DIFF m56",col=mycolor[1],ylim=c(0,500000),main=("Y2Y Diff M7 VS M56 to Predict M7"))
-lines(dmpjp$m56,predict(diff12.fit,newdata=dmpjp),type="p",pch=3,col=mycolor[8])
-legend("topleft",legend=c("real M7 Y2Y Diff", "predict M7 Y2Y Diff"),lty=c(1,1,1,1),col=mycolor[c(1,8)])
+msjp=melt(dmpjp[,c("year","m7","m56","prediction")],id="year")
+p <- ggplot(msjp, aes(year, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
+  labs(title="Y2Y Diff12 M56 to Predict M7")
+print(p1)
 
 
-p=ggplot(dmpjp,aes(x=year,y=m7))+geom_line()
-plot(dmpjp$year,dmpjp$m7,type="b",lty=1,xlab="date",col=mycolor[1],ylim=c(-100000,600000),main=("Y2Y Diff12 M56 to Predict M7"))
-lines(dmpjp$year,predict(diff12.fit,newdata=dmpjp),type="b",lty=1,xlab="date",col=mycolor[4])
-lines(dmpjp$year,dmpjp$m56,type="b",lty=1,xlab="date",col=mycolor[8])
-legend("topleft",legend=c("real m7 diff12", "predict m7 diff12","real m56 diff12"),lty=c(1,1,1,1),col=mycolor[c(1,4,8)])
+(p <- ggplot(data=dmpjp,aes(x=factor(year),weight=error,fill=factor(year))) + 
+  geom_bar(position='dodge')+labs(title="Y2Y Linear Regression Error"))
+
+
 
 #dmjp[which(dmjp$year==2015),"m6"]=dmpjp[which(dmpjp$year==2015),"m6"]+dmjp[which(dmjp$year==2014),"m6"]
 #predict.result=dmjp[which(dmjp$year==2015),"m6"]
 predict.result=dmpjp[which(dmpjp$year==2015),target.smon]+dmjp[which(dmjp$year==2014),"m56"]
-
 range(dmpjp.t$m7-fitted(diff12.fit))
-barplot((predict(diff12.fit,newdata=dmpjp)-dmpjp$m7)/dmjp$m7,names.arg=dmjp$year,ylab="ERROR")
 benchmark=data.frame(date=as.Date(target.time),methdology="Y2Y Diff LR with M56",
                      floor=predict.result+range(dmpjp.t$m6-fitted(diff12.fit))[1],
                      cap=predict.result+range(dmpjp.t$m6-fitted(diff12.fit))[2],
@@ -160,11 +166,14 @@ knitr::kable(benchmark,caption="基于Y2Y增长绝对数值的线性回归预测
 
 
 
+
+
 #=================================================================================================
 #4 Y2Y Diff Mean with 1st order different
 #-------------------------------------------------------------------------------------------
 sjp.data=(dmpjp[,-1]-dmpjp[,which(names(dmpjp)==target.smon)])/dmpjp[,which(names(dmpjp)==target.smon)]
 sjp.data[1,]=0
+sjp.data=select(sjp.data,-prediction,-error)
 #select the best KPI with lowest volatility whichh is sigma--------------------------
 sigma=apply(sjp.data,2,function (x) {
   return(var(x,na.rm=T))
@@ -172,7 +181,10 @@ sigma=apply(sjp.data,2,function (x) {
 
 #here we select m6 with the lowest volatility
 sigma=sigma[order(sigma)]
-barplot(sigma,main="1st Diff12 variance with some variables")
+
+(p <- ggplot(data=melt(as.data.frame(t(sigma)),id="m7"),aes(x=factor(variable),weight=value,fill=factor(variable))) + 
+  geom_bar(position='dodge')+labs(title="1st Diff12 variance with some variables"))
+
 
 sjp.data=sjp.data[,names(sigma)]
 sjp=cbind(year=dmjp$year,sjp.data)
@@ -278,17 +290,26 @@ summary(diff.fit)
 approxdiff=predict(diff.fit,newdata=vjp[which(vjp$year==2015),])
 predict.result=approxdiff+vjp[which(vjp$year==2015),"m56"]
 
-plot(vjp$m56,vjp$diff56,type="p",pch=1,ylab="DIFF=m7-m56",xlab="m56",col=mycolor[1],ylim=c(0,400000),main=("M2M Diff1 Vs M56 to Predict M7"))
-#lines(vjp$m6,vjp$diff6,type="p",pch=2,col=mycolor[3])
-lines(vjp$m56,predict(diff.fit,newdata=vjp),type="p",pch=3,col=mycolor[8])
-legend("topleft",legend=c("real M7-M56", "predict M7-M56"),lty=c(1,1,1,1),col=mycolor[c(1,8)])
+vjp$prediction=predict(diff.fit,newdata=vjp)
+vjp$error=(vjp$prediction-vjp$diff56)/(vjp$m7)
+vjp
 
-plot(vjp$year,vjp$diff56,type="b",lty=1,xlab="date",col=mycolor[1],ylim=c(0,350000),main=("M2M Diff M7-M56 to Predict M7"))
-lines(vjp$year,predict(diff.fit,newdata=vjp),type="b",lty=1,xlab="date",col=mycolor[8])
-legend("topleft",legend=c("real M7-M56 diff", "predict M7-M56 diff"),lty=c(1,1,1,1),col=mycolor[c(1,8)])
+msjp=melt(vjp[,c("m56","diff56","prediction")],id="m56")
+p <- ggplot(msjp, aes(m56, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
+  labs(title="M2M Diff1 Vs M56 to Predict M7")
+print(p1)
+
+msjp=melt(vjp[,c("year","diff56","prediction")],id="year")
+p <- ggplot(msjp, aes(year, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
+  labs(title="M2M Diff M7-M56 to Predict M7")
+print(p1)
+
+(p <- ggplot(data=vjp,aes(x=factor(year),weight=error,fill=factor(year))) + 
+  geom_bar(position='dodge')+labs(title="M2M Linear Regression Error"))
 
 prange=range(vjp$diff56-predict(diff.fit,newdata=vjp),na.rm = T)+predict.result
-barplot((predict(diff.fit,newdata=vjp)-vjp$diff56)/vjp$diff56,names.arg=vjp$year,ylab="ERROR")
 
 benchmark[3,]=data.frame(date=as.Date(target.time),methdology="M2M 1st Order Diff LR with M56",
                          floor=prange[1],
@@ -566,7 +587,8 @@ cat("lag=",lag," mse=",mse,"\n")
 error=(fitted(hwfit)-hwm.t$arrival)/hwm.t$arrival
 hwm.t$predict=fitted(hwfit)
 hwm.t$error=error
-barplot(error,names.arg=hwm.t$date,ylab="ERROR")
+(p <- ggplot(data=hwm.t,aes(x=factor(month),weight=error,fill=factor(month))) + 
+  geom_bar(position='dodge')+labs(title="Linear Regression Error"))
 
 
 gvmodel=gvlma(hwfit)
@@ -582,10 +604,13 @@ hwm[(nrow(hwm)-predict.no+1):nrow(hwm),]=hwm.p
 hwm[(nrow(hwm)-predict.no+1):nrow(hwm),]=hwm.p
 cat("the predicted final value: ",as.character(hwm.p$date), hwm.p$arrival,"\n")
 
-plot(hwm$date,hwm$arrival,type="b",lty=1,xlab="date",col=mycolor[1],ylim=c(0,400000),main=("Prediction Vs Official"))
-legend("topleft",legend=c("official", "predict"),lty=c(1,1,1,1),col=mycolor[c(1,3,5,7)])
-lines(hwm[c(time.range,max(time.range+1)),"date"],c(fitted(hwfit),hwm.p$arrival),type="p",pch=2,col=mycolor[3])
-#lines(hwm$date,hwm$jg*10,type="b",cex=1,lty=1,xlab="date",col=mycolor[5])
+msjp=hwm
+msjp$prediction=predict(hwfit,newdata=msjp)
+msjp=melt(msjp[,c("date","arrival","prediction")],id="date")
+p <- ggplot(msjp, aes(date, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
+  labs(title="LR Prediction Vs Official")
+print(p1)
 
 #3.3 evalation--------------------------------------------------------evaluation
 
@@ -622,33 +647,37 @@ knitr::kable(benchmark,caption="最终预测结果汇总表")
 # 7 Getting data in to MySQL
 ###################################################################################
 
-conn <- dbConnect(MySQL(), dbname = "thcresult", 
-                  username="root", password="123456",host="101.200.189.155",port=3306)
-#dbGetQuery(conn,"set names utf8")  #for macos
-dbGetQuery(conn,"set names gbk") # for win
+if (F){
 
-benchmark$prediction=benchmark[nrow(benchmark),"bestguess"]
-benchmark$acturalreslult=0
-benchmark$updatetime=as.numeric(Sys.time())
-benchmark$unixdate=as.numeric(as.POSIXct(benchmark$date))
-benchmark
-#rownames(benchmark)
+  
+  conn <- dbConnect(MySQL(), dbname = "thcresult", 
+                    username="root", password="123456",host="101.200.189.155",port=3306)
+  #dbGetQuery(conn,"set names utf8")  #for macos
+  dbGetQuery(conn,"set names gbk") # for win
+  
+  benchmark$prediction=benchmark[nrow(benchmark),"bestguess"]
+  benchmark$acturalreslult=0
+  benchmark$updatetime=as.numeric(Sys.time())
+  benchmark$unixdate=as.numeric(as.POSIXct(benchmark$date))
+  benchmark
+  #rownames(benchmark)
+  
+  dbListTables(conn)
+  #dbRemoveTable(conn,"japanresult")
+  
+  if (!dbExistsTable(conn, "japanresult"))  dbWriteTable(conn, "japanresult", benchmark)
+  if (dbExistsTable(conn, "japanresult"))  dbWriteTable(conn, "japanresult", benchmark,append=T)
+  
+  
+  
+  a=dbGetQuery(conn,"select * from japanresult")
+  class(a$unixdate) = c('POSIXt','POSIXct')
+  class(a$updatetime) = c('POSIXt','POSIXct')
+  a
+  str(a)
+  #dbGetQuery(conn,"delete from japanresult where date='2015-07-01'")
+  
+  dbDisconnect(conn)
+  
 
-dbListTables(conn)
-#dbRemoveTable(conn,"japanresult")
-
-if (!dbExistsTable(conn, "japanresult"))  dbWriteTable(conn, "japanresult", benchmark)
-if (dbExistsTable(conn, "japanresult"))  dbWriteTable(conn, "japanresult", benchmark,append=T)
-
-
-
-a=dbGetQuery(conn,"select * from japanresult")
-class(a$unixdate) = c('POSIXt','POSIXct')
-class(a$updatetime) = c('POSIXt','POSIXct')
-a
-str(a)
-#dbGetQuery(conn,"delete from japanresult where date='2015-07-01'")
-
-dbDisconnect(conn)
-
-
+}
