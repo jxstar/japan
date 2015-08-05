@@ -120,6 +120,7 @@ vcor=cor(t(dmpjp[-which(names(dmpjp)==target.smon)]),t(dmpjp[,-which(names(dmpjp
 
 # predict the year 2 year diff
 hcor=cor(dmpjp[-nrow(dmpjp),which(names(dmpjp)==target.smon)],dmpjp[-nrow(dmpjp),-1]) 
+knitr::kable(as.data.frame(hcor),caption="Y2Y Diff12（M7）Coefficient Correlation")
 
 #dmpjp.t=dmpjp[-which(dmpjp$year==2015 | dmpjp$year==2008),]
 dmpjp.t=filter(dmpjp,year<2015 & year>2008)
@@ -155,7 +156,7 @@ benchmark=data.frame(date=as.Date(target.time),methdology="Y2Y Diff LR with M56"
                      cap=predict.result+range(dmpjp.t$m6-fitted(diff12.fit))[2],
                      bestguess=predict.result,stringsAsFactors = F)
 
-
+knitr::kable(benchmark,caption="基于Y2Y增长绝对数值的线性回归预测")
 
 
 
@@ -200,8 +201,7 @@ benchmark[2,]=data.frame(date=as.Date(target.time),methdology="Y2Y Diff 1st Orde
                          cap=prange[2],
                          bestguess=predict.result,stringsAsFactors = F)
 
-(benchmark)
-
+knitr::kable(benchmark,caption="基于Y2Y增长绝对数值的一阶差分预测")
 
 dmjp[which(dmjp$year==2015),target.smon]=predict.result
 dmpjp[which(dmjp$year==2015),target.smon]=mxdiff12
@@ -267,6 +267,8 @@ cor.diff=cor(vjp$diff56,vjp[,2:ncol(vjp)],use="na.or.complete")
 cor.diff
 #m56 is the best
 
+knitr::kable(as.data.frame(cor.diff),caption="基于M2M月度一阶差分的线性回归预测")
+
 
 
 #diff.fit=lm(diff6~m6,na.exclude(vjp))
@@ -293,8 +295,8 @@ benchmark[3,]=data.frame(date=as.Date(target.time),methdology="M2M 1st Order Dif
                          cap=prange[2],
                          bestguess=predict.result,stringsAsFactors = F)
 
-(benchmark)
 
+knitr::kable(benchmark,caption="基于M2M月度一阶差分的线性回归预测")
 
 
 #=================================================================================
@@ -309,6 +311,7 @@ benchmark[4,]=data.frame(date=as.Date(target.time),methdology="M2M 1st Order Dif
                          bestguess=predict.result,stringsAsFactors = F)
 
 (benchmark)
+knitr::kable(benchmark[4,],caption="基于M2M月度一阶差分的保守预测")
 
 temp=filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon))
 temp[which(temp$date==as.Date("2015-07-01")),"arrival"]=predict.result
@@ -345,6 +348,8 @@ benchmark[5,]=data.frame(date=as.Date(target.time),methdology="M2M 2nd Order Dif
                          bestguess=predict.result,stringsAsFactors = F)
 
 (benchmark)
+
+knitr::kable(benchmark[5,],caption="基于M2M月度二阶差分预测")
 
 temp=filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon))
 temp[which(temp$date==as.Date("2015-07-01")),"diff"]=approxdiff
@@ -597,6 +602,53 @@ benchmark[7,]=data.frame(date=as.Date(target.time),methdology="Method Mean",
                          floor=NA,
                          cap=NA,
                          bestguess=mean(benchmark[1:6,"bestguess"]),stringsAsFactors = F)
+
 benchmark
+
+knitr::kable(benchmark[6,],caption="基于百度指数的线性回归预测")
+
+knitr::kable(benchmark,caption="最终预测结果汇总表")
+
+
+
+
+
+
+
+
+
+
+###################################################################################
+# 7 Getting data in to MySQL
+###################################################################################
+
+conn <- dbConnect(MySQL(), dbname = "thcresult", 
+                  username="root", password="123456",host="101.200.189.155",port=3306)
+#dbGetQuery(conn,"set names utf8")  #for macos
+dbGetQuery(conn,"set names gbk") # for win
+
+benchmark$prediction=benchmark[nrow(benchmark),"bestguess"]
+benchmark$acturalreslult=0
+benchmark$updatetime=as.numeric(Sys.time())
+benchmark$unixdate=as.numeric(as.POSIXct(benchmark$date))
+benchmark
+#rownames(benchmark)
+
+dbListTables(conn)
+#dbRemoveTable(conn,"japanresult")
+
+if (!dbExistsTable(conn, "japanresult"))  dbWriteTable(conn, "japanresult", benchmark)
+if (dbExistsTable(conn, "japanresult"))  dbWriteTable(conn, "japanresult", benchmark,append=T)
+
+
+
+a=dbGetQuery(conn,"select * from japanresult")
+class(a$unixdate) = c('POSIXt','POSIXct')
+class(a$updatetime) = c('POSIXt','POSIXct')
+a
+str(a)
+#dbGetQuery(conn,"delete from japanresult where date='2015-07-01'")
+
+dbDisconnect(conn)
 
 
