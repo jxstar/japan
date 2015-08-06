@@ -43,7 +43,9 @@ output: html_document
 
 ## 2.1 Overview
 
-```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=T}
+
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
 
 library(quantmod)
 library(leaps)
@@ -103,6 +105,7 @@ japan$yy=japan$arrival/japan$arrival12
 japan$year=as.integer(format(as.Date(japan$date),"%Y"))
 japan$month=as.integer(format(as.Date(japan$date),"%m"))
 jp=japan 
+jp=filter(jp,date<=as.Date(target.time))
 
 
 #=================================================================================================
@@ -122,10 +125,11 @@ print(p2)
 
 ```
 
-#2.2  基于Y2Y增长绝对数值的线性回归预测
+
+##2.2  基于Y2Y增长绝对数值的线性回归预测
 
 
-```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=T}
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
 
 
 #=================================================================================================
@@ -171,24 +175,18 @@ diff12.fit=lm(m7~m56,dmpjp.t)
 summary(diff12.fit)
 predict(diff12.fit,newdata=dmpjp.p)
 dmpjp[which(dmpjp$year==2015),target.smon]=predict(diff12.fit,newdata=dmpjp.p)
+dmpjp$prediction=predict(diff12.fit,newdata=dmpjp)
+dmpjp$error=(dmpjp$prediction-dmpjp$m7)/dmjp$m7
 
 
-plot(dmpjp$m56,dmpjp$m7,type="p",pch=1,ylab="Y2Y DIFF M7",xlab="Y2Y DIFF m56",col=mycolor[1],ylim=c(0,500000),main=("Y2Y Diff M7 VS M56 to Predict M7"))
-lines(dmpjp$m56,predict(diff12.fit,newdata=dmpjp),type="p",pch=3,col=mycolor[8])
-legend("topleft",legend=c("real M7 Y2Y Diff", "predict M7 Y2Y Diff"),lty=c(1,1,1,1),col=mycolor[c(1,8)])
 
-
-plot(dmpjp$year,dmpjp$m7,type="b",lty=1,xlab="date",col=mycolor[1],ylim=c(-100000,600000),main=("Y2Y Diff12 M56 to Predict M7"))
-lines(dmpjp$year,predict(diff12.fit,newdata=dmpjp),type="b",lty=1,xlab="date",col=mycolor[4])
-lines(dmpjp$year,dmpjp$m56,type="b",lty=1,xlab="date",col=mycolor[8])
-legend("topleft",legend=c("real m7 diff12", "predict m7 diff12","real m56 diff12"),lty=c(1,1,1,1),col=mycolor[c(1,4,8)])
 
 #dmjp[which(dmjp$year==2015),"m6"]=dmpjp[which(dmpjp$year==2015),"m6"]+dmjp[which(dmjp$year==2014),"m6"]
 #predict.result=dmjp[which(dmjp$year==2015),"m6"]
 predict.result=dmpjp[which(dmpjp$year==2015),target.smon]+dmjp[which(dmjp$year==2014),"m56"]
 
 range(dmpjp.t$m7-fitted(diff12.fit))
-barplot((predict(diff12.fit,newdata=dmpjp)-dmpjp$m7)/dmjp$m7,names.arg=dmjp$year,ylab="ERROR")
+
 benchmark=data.frame(date=as.Date(target.time),methdology="Y2Y Diff LR with M56",
                      floor=predict.result+range(dmpjp.t$m6-fitted(diff12.fit))[1],
                      cap=predict.result+range(dmpjp.t$m6-fitted(diff12.fit))[2],
@@ -198,12 +196,63 @@ benchmark=data.frame(date=as.Date(target.time),methdology="Y2Y Diff LR with M56"
 
 ```
 
-    
-#2.3  基于Y2Y增长绝对数值的一阶差分预测
-    
+###2.2.1 直观overview
 
 
-```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=T}
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
+#=================================================================================================
+#3 predict with the Y2Y Trend
+#combination
+p<- ggplot(filter(jp,year %in% c(2002:target.year),month %in% c(1:target.mon)), aes(year, arrival))
+p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
+  labs(title="JP History Tourist Number Groupby Month")
+print(p1)
+
+p<- ggplot(filter(jp,year %in% c(2002:target.year),month %in% c(1:target.mon)), aes(year, diff12))
+p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
+  labs(title="JP Y2Y Diff Groupby Month")
+print(p1)
+
+```
+
+
+###2.2.2 相关性分析
+
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
+
+msjp=melt(dmpjp[,c("m7","m56","prediction")],id="m56")
+p <- ggplot(msjp, aes(m56, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
+  labs(title="Y2Y Diff M7 VS M56 to Predict M7")
+print(p1)
+
+msjp=melt(dmpjp[,c("year","m7","m56","prediction")],id="year")
+p <- ggplot(msjp, aes(year, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
+  labs(title="Y2Y Diff12 M56 to Predict M7")
+print(p1)
+
+
+(p <- ggplot(data=dmpjp,aes(x=factor(year),weight=error,fill=factor(year))) + 
+  geom_bar(position='dodge')+labs(title="Y2Y Linear Regression Error"))
+
+
+```
+
+
+###2.2.3 结果
+
+`r knitr::kable(benchmark[1,],caption="基于Y2Y增长绝对数值的线性回归预测")`
+
+
+
+    
+##2.3  基于Y2Y增长绝对数值的一阶差分预测
+
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
 
 
 #=================================================================================================
@@ -211,6 +260,7 @@ benchmark=data.frame(date=as.Date(target.time),methdology="Y2Y Diff LR with M56"
 #-------------------------------------------------------------------------------------------
 sjp.data=(dmpjp[,-1]-dmpjp[,which(names(dmpjp)==target.smon)])/dmpjp[,which(names(dmpjp)==target.smon)]
 sjp.data[1,]=0
+sjp.data=select(sjp.data,-prediction,-error)
 #select the best KPI with lowest volatility whichh is sigma--------------------------
 sigma=apply(sjp.data,2,function (x) {
   return(var(x,na.rm=T))
@@ -218,17 +268,26 @@ sigma=apply(sjp.data,2,function (x) {
 
 #here we select m6 with the lowest volatility
 sigma=sigma[order(sigma)]
-barplot(sigma,main="1st Diff12 variance with some variables")
+
 
 sjp.data=sjp.data[,names(sigma)]
 sjp=cbind(year=dmjp$year,sjp.data)
+```
+
+###2.3.1  方法论
+
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
+
+(p <- ggplot(data=melt(as.data.frame(t(sigma)),id="m7"),aes(x=factor(variable),weight=value,fill=factor(variable))) + 
+  geom_bar(position='dodge')+labs(title="1st Diff12 variance with some variables"))
+
 
 dmpjp[which(dmpjp$year==2015),target.smon]=NA
 msjp=melt(dmpjp[,c("year","m7","m6","m56")],id="year")
 p <- ggplot(msjp, aes(year, value))
 p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
-  labs(title="JP Diff12 Groupby Month")+
-  geom_text(aes(x=2015,y=max(value,na.rm=T)),hjust=1,label="Select The Largest Y2Y Increase in History Ever(2014)")
+  labs(title="JP Diff12 Groupby Month")
 print(p1)
 
 ddmpjp=as.data.frame(cbind(year=dmpjp$year, diff=dmpjp[,target.smon]-dmpjp$m6))
@@ -256,25 +315,37 @@ mdmjp=select(dmjp,year,m7,m6,m56)
 mdmjp=melt(mdmjp,id="year")
 mdmpjp=select(dmpjp,year,m7,m6,m56)
 mdmpjp=melt(mdmpjp,id="year")
+```
+
+###2.3.2  结果
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
 
 p <- ggplot(mdmjp, aes(year, value))
 p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
   labs(title="JP History Tourist Number Prediction Groupby Month")+
-  geom_text(aes(x=2015,y=max(value,na.rm=T)),hjust=1,label="Select The Largest Y2Y Increase in History Ever(2014)")
+  geom_text(aes(x=2015,y=max(value,na.rm=T)),hjust=1,label="Select The Largest Y2Y Increase Ever")
 print(p1)
 
 p <- ggplot(mdmpjp, aes(year, value))
 p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
   labs(title="JP History Tourist Y2Y Growth Amount Prediction Groupby Month")+
-  geom_text(aes(x=2015,y=max(value,na.rm=T)),hjust=1,label="Select The Largest Y2Y Increase in History Ever(2014)")
+  geom_text(aes(x=2015,y=max(value,na.rm=T)),hjust=1,label="Select The Largest Y2Y Increase Ever")
 print(p1)
+
+
 
 ```
 
-#2.4  基于M2M月度一阶差分的线性回归预测
+`r knitr::kable(benchmark[2,],caption="基于Y2Y增长绝对数值的一阶差分预测")`
 
 
-```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=T}
+
+##2.4  基于M2M月度一阶差分的线性回归预测
+
+###2.4.1 方法论
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
 
 p <- ggplot(filter(jp,year %in% c(2002:target.year),month %in% c(4:target.mon)), aes(date, diff))
 #p2=p+geom_line()+labs(title="JP Tourist Number 1st order difference")
@@ -318,18 +389,36 @@ diff.fit=lm(diff56~m56,na.exclude(vjp))
 #predict(diff.fit,newdata=vjp[which(vjp$year==2015),])+vjp[which(vjp$year==2015),"m56"]
 approxdiff=predict(diff.fit,newdata=vjp[which(vjp$year==2015),])
 predict.result=approxdiff+vjp[which(vjp$year==2015),"m56"]
+vjp$prediction=predict(diff.fit,newdata=vjp)
+vjp$error=(vjp$prediction-vjp$diff56)/(vjp$m7)
 
-plot(vjp$m56,vjp$diff56,type="p",pch=1,ylab="DIFF=m7-m56",xlab="m56",col=mycolor[1],ylim=c(0,400000),main=("M2M Diff1 Vs M56 to Predict M7"))
-#lines(vjp$m6,vjp$diff6,type="p",pch=2,col=mycolor[3])
-lines(vjp$m56,predict(diff.fit,newdata=vjp),type="p",pch=3,col=mycolor[8])
-legend("topleft",legend=c("real M7-M56", "predict M7-M56"),lty=c(1,1,1,1),col=mycolor[c(1,8)])
 
-plot(vjp$year,vjp$diff56,type="b",lty=1,xlab="date",col=mycolor[1],ylim=c(0,350000),main=("M2M Diff M7-M56 to Predict M7"))
-lines(vjp$year,predict(diff.fit,newdata=vjp),type="b",lty=1,xlab="date",col=mycolor[8])
-legend("topleft",legend=c("real M7-M56 diff", "predict M7-M56 diff"),lty=c(1,1,1,1),col=mycolor[c(1,8)])
+```
+
+###2.4.2 有关回归
+
+
+`r knitr::kable(as.data.frame(cor.diff),caption="基于M2M月度一阶差分的线性回归预测")`
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
+
+
+msjp=melt(vjp[,c("m56","diff56","prediction")],id="m56")
+p <- ggplot(msjp, aes(m56, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
+  labs(title="M2M Diff1 Vs M56 to Predict M7")
+print(p1)
+
+msjp=melt(vjp[,c("year","diff56","prediction")],id="year")
+p <- ggplot(msjp, aes(year, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
+  labs(title="M2M Diff M7-M56 to Predict M7")
+print(p1)
+
+(p <- ggplot(data=vjp,aes(x=factor(year),weight=error,fill=factor(year))) + 
+  geom_bar(position='dodge')+labs(title="M2M Linear Regression Error"))
 
 prange=range(vjp$diff56-predict(diff.fit,newdata=vjp),na.rm = T)+predict.result
-barplot((predict(diff.fit,newdata=vjp)-vjp$diff56)/vjp$diff56,names.arg=vjp$year,ylab="ERROR")
 
 benchmark[3,]=data.frame(date=as.Date(target.time),methdology="M2M 1st Order Diff LR with M56",
                          floor=prange[1],
@@ -339,10 +428,17 @@ benchmark[3,]=data.frame(date=as.Date(target.time),methdology="M2M 1st Order Dif
 
 ```
 
-    
-#2.5  基于M2M月度一阶差分的保守预测
 
-```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=T}
+###2.4.3 结果
+
+`r knitr::kable(benchmark[3,],caption="基于M2M月度一阶差分的线性回归预测")`
+
+##2.5  基于M2M月度一阶差分的保守预测
+
+##2.5.1 方法论
+
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
 
 
 #=================================================================================
@@ -366,12 +462,18 @@ print(p1)
 
 ```
 
+
+###2.5.2 结果
+
+`r knitr::kable(benchmark[4,],caption="基于M2M月度一阶差分的保守预测")`
+
     
-#2.6  基于M2M月度二阶差分预测
+##2.6  基于M2M月度二阶差分预测
+
+###2.6.1 方法论
 
 
-
-```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=T}
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
 
 #=================================================================================
 # Second Order without Linear Regression : Diff M7(2015) - Diff M6(2015)=Diff M7(2014) - Diff M6(2014)
@@ -406,10 +508,17 @@ print(p1)
 
 ```
 
-    
-#2.7  基于百度指数的线性回归预测
 
-```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=T}
+###2.6.3 结果
+
+`r knitr::kable(benchmark[5,],caption="基于M2M月度二阶差分预测")`
+
+    
+##2.7  基于百度指数的线性回归预测
+
+###2.7.1 方法论
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
 
 
 #=================================================================================================
@@ -524,6 +633,7 @@ error=(fitted(hwfit)-hwm.t$arrival)/hwm.t$arrival
 hwm.t$predict=fitted(hwfit)
 hwm.t$error=error
 #barplot(error,names.arg=hwm.t$date,ylab="ERROR")
+(p <- ggplot(data=hwm.t,aes(x=factor(month),weight=error,fill=factor(month))) + geom_bar(position='dodge')+labs(title="Linear Regression Error"))
 
 
 
@@ -533,10 +643,14 @@ hwm[(nrow(hwm)-predict.no+1):nrow(hwm),]=hwm.p
 hwm[(nrow(hwm)-predict.no+1):nrow(hwm),]=hwm.p
 cat("the predicted final value: ",as.character(hwm.p$date), hwm.p$arrival,"\n")
 
-plot(hwm$date,hwm$arrival,type="b",lty=1,xlab="date",col=mycolor[1],ylim=c(0,400000),main=("Prediction Vs Official"))
-legend("topleft",legend=c("official", "predict"),lty=c(1,1,1,1),col=mycolor[c(1,3,5,7)])
-lines(hwm[c(time.range,max(time.range+1)),"date"],c(fitted(hwfit),hwm.p$arrival),type="p",pch=2,col=mycolor[3])
-#lines(hwm$date,hwm$jg*10,type="b",cex=1,lty=1,xlab="date",col=mycolor[5])
+
+msjp=hwm
+msjp$prediction=predict(hwfit,newdata=msjp)
+msjp=melt(msjp[,c("date","arrival","prediction")],id="date")
+p <- ggplot(msjp, aes(date, value))
+p1 <- p + geom_line(aes(colour = factor(variable)), alpha = 0.6)+geom_point(aes(colour = factor(variable)))+
+  labs(title="LR Prediction Vs Official")
+print(p1)
 
 #3.3 evalation--------------------------------------------------------evaluation
 
@@ -554,10 +668,70 @@ benchmark[7,]=data.frame(date=as.Date(target.time),methdology="Method Mean",
                          bestguess=mean(benchmark[1:6,"bestguess"]),stringsAsFactors = F)
 ```
 
+###2.7.2 结果
+
+`r knitr::kable(benchmark[6,],caption="基于百度指数的线性回归预测")`
 
 
 # 3 仿真结果
 
-```{r, echo=F}
-knitr::kable(benchmark)
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
+
+
+
+final.result=benchmark[7,"bestguess"]
+jp[which(jp$date==as.Date(target.time)),"arrival"]=final.result
+jp[which(jp$date==as.Date(target.time)),]=transform(jp[which(jp$date==as.Date(target.time)),],
+                                                    diff=arrival-arrival1,diff12=arrival-arrival12,
+                                                    mm=arrival/arrival1,yy=arrival/arrival12)
+tjp=tail(select(jp,date,thismon=arrival,lastmon=arrival1,lastyear=arrival12,M2M=diff,Y2Y=diff12,mm,yy,korea),13)
+names(tjp)=c("date",paste(target.year,target.mon,sep="-"),paste(target.year,target.mon-1,sep="-"),paste(target.year-1,target.mon,sep="-"), "M2M", "Y2Y","mmratio","yyratio","korea")
+
+
+knitr::kable(benchmark,caption="最终预测结果汇总表")
+knitr::kable(tjp,caption=paste(as.Date(target.time),"Result Analysis"))
+
 ```
+
+`r knitr::kable(benchmark,caption="最终预测结果汇总表")`
+`r knitr::kable(tjp,caption=paste(as.Date(target.time),"Result Analysis"))`
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
+
+
+#---------------------------------------overview--------------------------------------------
+p <- ggplot(jp, aes(month, arrival))
+p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6) + 
+  geom_point(aes(colour = factor(year)))+labs(title="JP History Overview Groupby Year")
+print(p1)
+p2=p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+facet_wrap(~year)+
+  labs(title="JP History Tourist Number Overview")
+print(p2)
+
+#---------------------------------------Y2Y group by month--------------------------------------------
+p<- ggplot(filter(jp,year %in% c(2002:target.year),month %in% c(4:target.mon)), aes(year, arrival))
+p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
+  labs(title="JP History Tourist Number Groupby Month")
+print(p1)
+
+p<- ggplot(filter(jp,year %in% c(2002:target.year),month %in% c(4:target.mon)), aes(year, diff12))
+p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
+  labs(title="JP Y2Y Diff Groupby Month")
+print(p1)
+
+
+
+#---------------------------------------M2M group by year--------------------------------------------
+p <- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon)), aes(month, arrival))
+p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+
+  labs(title="JP Tourist Number Groupby Year")
+print(p1)
+
+p <- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon)), aes(month, diff))
+p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+
+  labs(title="JP M2M Groupby Year")
+print(p1)
+
+```
+

@@ -111,6 +111,7 @@ japan$yy=japan$arrival/japan$arrival12
 japan$year=as.integer(format(as.Date(japan$date),"%Y"))
 japan$month=as.integer(format(as.Date(japan$date),"%m"))
 jp=japan 
+jp=filter(jp,date<=as.Date(target.time))
 
 
 #=================================================================================================
@@ -735,7 +736,68 @@ benchmark[7,]=data.frame(date=as.Date(target.time),methdology="Method Mean",
 
 # 3 仿真结果
 
-```{r, echo=F}
+
+
+
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
+
 knitr::kable(benchmark,caption="最终预测结果汇总表")
+
+final.result=benchmark[7,"bestguess"]
+jp[which(jp$date==as.Date(target.time)),"arrival"]=final.result
+jp[which(jp$date==as.Date(target.time)),]=transform(jp[which(jp$date==as.Date(target.time)),],
+                                                    diff=arrival-arrival1,diff12=arrival-arrival12,
+                                                    mm=arrival/arrival1,yy=arrival/arrival12)
+tjp=tail(select(jp,date,thismon=arrival,lastmon=arrival1,lastyear=arrival12,M2M=diff,Y2Y=diff12,mm,yy,korea),13)
+names(tjp)=c("date",paste(target.year,target.mon,sep="-"),paste(target.year,target.mon-1,sep="-"),paste(target.year-1,target.mon,sep="-"), "M2M", "Y2Y","mmratio","yyratio","korea")
+knitr::kable(tjp,caption=paste(as.Date(target.time),"Result Analysis"))
+
+```
+
+`r knitr::kable(benchmark,caption="最终预测结果汇总表")`
+`r knitr::kable(tjp,caption=paste(as.Date(target.time),"Result Analysis"))`
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
+#---------------------------------------overview--------------------------------------------
+p <- ggplot(jp, aes(month, arrival))
+p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6) + 
+  geom_point(aes(colour = factor(year)))+labs(title="JP History Overview Groupby Year")
+print(p1)
+p2=p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+facet_wrap(~year)+
+  labs(title="JP History Tourist Number Overview")
+print(p2)
+
+#---------------------------------------Y2Y group by month--------------------------------------------
+p<- ggplot(filter(jp,year %in% c(2002:target.year),month %in% c(4:target.mon)), aes(year, arrival))
+p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
+  labs(title="JP History Tourist Number Groupby Month")
+print(p1)
+
+p<- ggplot(filter(jp,year %in% c(2002:target.year),month %in% c(4:target.mon)), aes(year, diff12))
+p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
+  labs(title="JP Y2Y Diff Groupby Month")
+print(p1)
+
+
+
+#---------------------------------------M2M group by year--------------------------------------------
+p <- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon)), aes(month, arrival))
+p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+
+  labs(title="JP Tourist Number Groupby Year")
+print(p1)
+
+p <- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon)), aes(month, diff))
+p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+
+  labs(title="JP M2M Groupby Year")
+print(p1)
+
+
+
+
+
+
+
+
 ```
 
