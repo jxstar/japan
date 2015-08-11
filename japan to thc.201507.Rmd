@@ -679,15 +679,22 @@ benchmark[7,]=data.frame(date=as.Date(target.time),methdology="Method Mean",
 ```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
 
 
-
 final.result=benchmark[7,"bestguess"]
+(final.result=mean(benchmark[c(1,2,3,5),"bestguess"]))
+row.names(benchmark)=as.character(1:7)
+benchmark[8,]=data.frame(date=as.Date(target.time),methdology="Final Result",
+                         floor=NA,
+                         cap=NA,
+                         bestguess=final.result,stringsAsFactors = F)
+
+
 jp[which(jp$date==as.Date(target.time)),"arrival"]=final.result
 jp[which(jp$date==as.Date(target.time)),]=transform(jp[which(jp$date==as.Date(target.time)),],
                                                     diff=arrival-arrival1,diff12=arrival-arrival12,
                                                     mm=arrival/arrival1,yy=arrival/arrival12)
 tjp=tail(select(jp,date,thismon=arrival,lastmon=arrival1,lastyear=arrival12,M2M=diff,Y2Y=diff12,mm,yy,korea),13)
 names(tjp)=c("date",paste(target.year,target.mon,sep="-"),paste(target.year,target.mon-1,sep="-"),paste(target.year-1,target.mon,sep="-"), "M2M", "Y2Y","mmratio","yyratio","korea")
-
+tjp=transform(tjp,mmratio=mmratio-1,yyratio=yyratio-1)
 
 knitr::kable(benchmark,caption="最终预测结果汇总表")
 knitr::kable(tjp,caption=paste(as.Date(target.time),"Result Analysis"))

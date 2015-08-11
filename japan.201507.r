@@ -638,9 +638,17 @@ knitr::kable(benchmark[6,],caption="基于百度指数的线性回归预测")
 #======================================================================================
 # Final Result Analysis
 #======================================================================================
-knitr::kable(benchmark,caption="最终预测结果汇总表")
+
 
 final.result=benchmark[7,"bestguess"]
+(final.result=mean(benchmark[c(1,2,3,5),"bestguess"]))
+benchmark[8,]=data.frame(date=as.Date(target.time),methdology="Final Result",
+                         floor=NA,
+                         cap=NA,
+                         bestguess=final.result,stringsAsFactors = F)
+row.names(benchmark)=as.character(1:8)
+knitr::kable(benchmark,caption="最终预测结果汇总表")
+
 jp[which(jp$date==as.Date(target.time)),"arrival"]=final.result
 jp[which(jp$date==as.Date(target.time)),]=transform(jp[which(jp$date==as.Date(target.time)),],
                                                     diff=arrival-arrival1,diff12=arrival-arrival12,
