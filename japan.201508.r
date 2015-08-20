@@ -27,7 +27,7 @@ mycolor=rainbow(20)
 #============================================================
 ## Global constant
 #============================================================
-target.time=as.POSIXlt("2015-07-01")
+target.time=as.POSIXlt("2015-08-01")
 target.mon=target.time$mon+1
 target.year=target.time$year+1900
 (gcol=paste("m", 1:target.mon, sep=""))
@@ -138,9 +138,9 @@ dmpjp
 
 
 #-----------------------------------------------------------
-#[*]3.1 direct LR : M6-->M7: m6 is the best: 0.9928283   M56:0.9975592
+#[*]3.1 direct LR :M8: m67 is the best: 0.9710302
 (hcor.LR=cor(dmjp[,which(names(dmjp)==gcol[target.mon])],dmjp[,-c(1,which(names(dmjp)==tm))],use="na.or.complete"))
-#[ ]3.3 Diff12 LR: Diff12(M56)-->Diff12(M7): 0.9949555
+#[ ]3.3 Diff12 LR: Diff12(M4)-->Diff12(M8): 0.9935791
 (hcor.Diff=cor(dmpjp[-nrow(dmpjp),which(names(dmpjp)==gcol[target.mon])],dmpjp[-nrow(dmpjp),-1],use="na.or.complete"))
 (hcor.LR-hcor.Diff)
 knitr::kable(as.data.frame(hcor.LR),caption="Y2Y M7 Coefficient Correlation")
@@ -155,13 +155,14 @@ knitr::kable(as.data.frame(hcor.Diff),caption="Y2Y Diff12（M7）Coefficient Cor
 #[ ]3.3 Diff12 LR: Diff12(M6)-->Diff12(M7)
 #[ ]3.4 Diff12 1st order diff(2nd order diff):Diff12(2015.7)-Diff12(2014.7)=Diff12(2015.6)-Diff12(2015.6)
 methodology=gmethod[1]
-(usedata=dmjp)
+(usedata=filter(dmjp, year>=2009))
 (tm)
-(um="m56")
+(um="m67")
 (useformula=as.formula(paste(tm, "~", um, sep="")))
 (gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
 
-ufit=lm(useformula,data=na.omit(usedata))
+#2008 is bad for august
+ufit=lm(useformula,data=na.exclude(usedata))
 #ufit=lm(m7~I(m56^2)+m56,data=na.omit(usedata))
 (smfit=summary(ufit))
 (predict.result=predict(ufit,newdata=usedata[which(usedata$year==target.year),]))
@@ -189,7 +190,7 @@ er=range((usedata[,tm]-usedata$prediction),na.rm = T)
 benchmark=data.frame(date=as.Date(target.time), id="1.1",methdology=methodology,target=tm, dependent=um,
                      floor=predict.result+er[1], cap=predict.result+er[2],bestguess=predict.result,
                      correlation=max(hcor.LR,na.rm = T), adjR2=smfit$adj.r.squared,variance=NA,maxError=max(abs(usedata$error),na.rm=T),
-                     status="Singular", adopted="Y",stringsAsFactors = F)
+                     status="Normal", adopted="Y",stringsAsFactors = F, row.names=NULL)
 (benchmark)
 #knitr::kable(benchmark,caption="月度直接线性回归预测")
 
@@ -204,7 +205,7 @@ benchmark=data.frame(date=as.Date(target.time), id="1.1",methdology=methodology,
 (methodology=gmethod[2])
 (usedata=dmjp)
 (tm)
-(um="m6")
+(um="m56")
 (gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
 
 #sjp.data=(dmjp[,-1]-dmjp[,which(names(dmpjp)==tm)])/dmjp[,which(names(dmpjp)==tm)]
@@ -214,7 +215,7 @@ sigma=apply(sjp.data,2,function (x) {return(var(x,na.rm=T))})
 (sigma=sigma[order(sigma)])
 (p <- ggplot(data=melt(as.data.frame(t(sigma)),id=tm),aes(x=factor(variable),weight=value)) + 
   geom_bar(position='dodge',fill="grey")+labs(title=paste(gpicname," : (Mx-M7) variance",sep=" ")))
-(um="m6")
+
 
 # m6: M6 Diff 12
 #mean(m7)(without2015)-mean(m6)(without2015)=m7(2015)-m6(2015)
@@ -240,7 +241,7 @@ benchmark[which(gmethod==methodology),]=
   data.frame(date=as.Date(target.time),id="1.2",methdology=methodology,target=tm, dependent=um,
              floor=prange[1], cap=prange[2], bestguess=predict.result,
              correlation=NA, adjR2=NA,variance=min(sigma[-1],na.rm = T),maxError=max(abs(usedata$error),na.rm=T),
-             status="Perfect", adopted="Y",stringsAsFactors = F)
+             status="Normal", adopted="Y",stringsAsFactors = F, row.names=NULL)
 (benchmark)
 #knitr::kable(benchmark,caption="月度一阶差分")
 resplot(dmjp,predict.result)
@@ -254,20 +255,21 @@ resplot(dmjp,predict.result)
 #[ ]3.4 Diff12 1st order diff(2nd order diff):Diff12(2015.7)-Diff12(2014.7)=Diff12(2015.6)-Diff12(2015.6)
 
 (methodology=gmethod[3])
-(usedata=dmpjp)
+(usedata=filter(dmpjp, year>=2010))
+#(usedata=dmpjp)
 (tm)
-(um="m56")
+(um="m4")
 (useformula=as.formula(paste(tm, "~", um, sep="")))
 (gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
 (hcor.Diff=cor(dmpjp[,which(names(dmpjp)==gcol[target.mon])],dmpjp[,-c(1, which(names(dmpjp)==tm))],use="na.or.complete"))
-#select M56
+
 
 ufit=lm(useformula,data=na.omit(usedata))
 (smfit=summary(ufit))
 (predict.result=predict(ufit,newdata=usedata[which(usedata$year==target.year),])+dmjp[which(usedata$year==(target.year-1)),tm])
 usedata[which(usedata$year==target.year),tm]=predict(ufit,newdata=usedata[which(usedata$year==target.year),])
 usedata$prediction=predict(ufit,newdata=usedata)
-usedata$error=(usedata$prediction-usedata[,tm])/dmjp[,tm]
+usedata$error=(usedata$prediction-usedata[,tm])/dmjp[which(dmjp$year>=2010),tm]
 #usedata
 
 msjp=melt(usedata[,c(tm,um,"prediction")],id=um)
@@ -290,7 +292,7 @@ benchmark[which(gmethod==methodology),]=
   data.frame(date=as.Date(target.time),id="2.1",methdology=methodology, target=paste(tm,"(2015-2014)",sep = ""), dependent=um,
              floor=predict.result+er[1],cap=predict.result+er[2], bestguess=predict.result,
              correlation=max(hcor.Diff,na.rm = T), adjR2=smfit$adj.r.squared,variance=NA,maxError=max(abs(usedata$error),na.rm=T),
-             status="Singular", adopted="Y",stringsAsFactors = F)
+             status="Singular", adopted="Y",stringsAsFactors = F, row.names=NULL)
 (benchmark)
 knitr::kable(benchmark,caption="Y2Y Diff12 线性回归预测")
 resplot(dmjp,predict.result)
@@ -306,8 +308,9 @@ resplot(dmjp,predict.result)
 #Diff12(2015.7)-Diff12(2014.7)=Diff12(2015.6)-Diff12(2014.6)
 (methodology=gmethod[4])
 (usedata=dmpjp)
+(usedata=filter(dmpjp, year>=2010))
 (tm)
-(um="m56")
+(um="m3")
 (gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
 
 sjp.data=(dmpjp[,-1]-dmpjp[,which(names(dmpjp)==tm)])/dmpjp[,which(names(dmpjp)==tm)]
@@ -321,7 +324,7 @@ sigma=apply(sjp.data,2,function (x) {return(var(x,na.rm=T))})
 #m7(2015)=mean(m7)(without2015)-mean(m6)(without2015)+m6(2015)
 #predict.result=mean(usedata[-which(usedata$year==target.year),tm]-
 #                    usedata[-which(usedata$year==target.year),um])+usedata[which(usedata$year==target.year),um]
-usedata
+
 predict.result=usedata[which(usedata$year==(target.year-1)),tm]-usedata[which(usedata$year==(target.year-1)),um]+
   usedata[which(usedata$year==target.year),um]+dmjp[which(usedata$year==(target.year-1)),tm]
 
@@ -332,7 +335,7 @@ prange=range(usedata[-which(usedata$year==(target.year)),tm]-usedata[-which(used
 
 usedata$prediction=c(NA,usedata[-which(usedata$year==(target.year)),tm])-
   c(NA,usedata[-which(usedata$year==(target.year)),um])+usedata[,um]
-usedata$error=(usedata$prediction-usedata[,tm])/dmjp[,tm]
+usedata$error=(usedata$prediction-usedata[,tm])/dmjp[which(dmjp$year>=2010),tm]
 (p <- ggplot(data=usedata,aes(x=factor(year),weight=error,fill=factor(year))) + 
   geom_bar(position='dodge')+labs(title=paste(gpicname, ": ERROR",sep=" "), x="YEAR", y="ERROR"))
 
@@ -340,7 +343,7 @@ benchmark[which(gmethod==methodology),]=
   data.frame(date=as.Date(target.time),id="2.2",methdology=methodology, target=paste(tm,"(2015-2014)",sep = ""), dependent=um,
              floor=prange[1], cap=prange[2], bestguess=predict.result,
              correlation=NA, adjR2=NA,variance=min(sigma[-1],na.rm = T),maxError=max(abs(usedata$error),na.rm=T),
-             status="Normal", adopted="Y",stringsAsFactors = F)
+             status="Normal", adopted="Y",stringsAsFactors = F, row.names=NULL)
 (benchmark)
 
 knitr::kable(benchmark,caption="基于Y2Y增长绝对数值Diff12一阶差分")
@@ -416,7 +419,7 @@ names(diff1)=c("year",gcol)
 
 methodology=gmethod[5]
 (tm)
-(um="m5")
+(um="m7")
 (useformula=as.formula(paste(tm, "~", um, sep="")))
 (gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
 
@@ -466,8 +469,8 @@ er=range((usedata[,tm]-usedata$prediction),na.rm = T)
 benchmark[which(gmethod==methodology),]=
   data.frame(date=as.Date(target.time),id="3.1",methdology=methodology, target=paste(tm,um,sep = "-"), dependent=um,
              floor=predict.result+er[1],cap=predict.result+er[2], bestguess=predict.result,
-             correlation=max(hcor.dmjp,na.rm = T), adjR2=smfit$adj.r.squared,variance=NA,maxError=max(abs(usedata$error),na.rm=T),
-             status="Normal", adopted="Y",stringsAsFactors = F)
+             correlation=max(abs(hcor.dmjp),na.rm = T), adjR2=smfit$adj.r.squared,variance=NA,maxError=max(abs(usedata$error),na.rm=T),
+             status="Normal", adopted="Y",stringsAsFactors = F, row.names=NULL)
 (benchmark)
 knitr::kable(benchmark,caption="基于M2M月度一阶差分的线性回归预测")
 resplot(dmjp,predict.result)
@@ -486,7 +489,7 @@ resplot(dmjp,predict.result)
 (methodology=gmethod[6])
 (usedata=diff1)
 (tm)
-(um="m6")
+(um="m7")
 (gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
 
 #mean(m7)(without2015)-mean(m6)(without2015)=m7(2015)-m6(2015)
@@ -504,9 +507,9 @@ benchmark[which(gmethod==methodology),]=
   data.frame(date=as.Date(target.time),id="3.2",methdology=methodology,target=paste(tm,um,sep = "-"), dependent="mean",
              floor=prange[1], cap=prange[2], bestguess=predict.result,
              correlation=NA, adjR2=NA,variance=NA,maxError=max(abs(usedata$error),na.rm=T),
-             status="Conservative", adopted="Y",stringsAsFactors = F)
+             status="Conservative", adopted="Y",stringsAsFactors = F, row.names=NULL)
 (benchmark)
-knitr::kable(benchmark,caption="基于M2M月度一阶差分的保守预测")
+#knitr::kable(benchmark,caption="基于M2M月度一阶差分的保守预测")
 resplot(dmjp,predict.result)
 
 
@@ -531,7 +534,7 @@ names(diff2nd)=c("year",gcol)
 
 (methodology=gmethod[7])
 (tm)
-(um="m6")
+(um="m7")
 (gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
 (usedata=diff2nd)
 
@@ -557,9 +560,9 @@ benchmark[which(gmethod==methodology),]=
   data.frame(date=as.Date(target.time),id="3.3",methdology=methodology,target=paste("delta","(",paste(tm,um,sep = "-"),")",sep=""), dependent=paste(tm,um,sep = "-"),
              floor=prange[1], cap=prange[2], bestguess=predict.result,
              correlation=NA, adjR2=NA,variance=NA,maxError=max(abs(usedata$error),na.rm=T),
-             status="Singular", adopted="Y",stringsAsFactors = F)
+             status="Normal", adopted="Y",stringsAsFactors = F, row.names=NULL)
 (benchmark)
-knitr::kable(benchmark,caption="基于M2M月度二阶差分预测")
+#knitr::kable(benchmark,caption="基于M2M月度二阶差分预测")
 resplot(dmjp,predict.result)
 
 
@@ -809,7 +812,7 @@ benchmark[which(gmethod==methodology),]=
   data.frame(date=as.Date(target.time),id="4",methdology=methodology,target=tm, dependent="gwgl+newyear+mars",
              floor=prange[1], cap=prange[2], bestguess=predict.result,
              correlation=hwm.cor[,um], adjR2=smfit$adj.r.squared,variance=NA,maxError=max(abs(hwm.t$error),na.rm=T),
-             status="Normal", adopted="Y",stringsAsFactors = F)
+             status="Normal", adopted="Y",stringsAsFactors = F, row.names=NULL)
 
 knitr::kable(benchmark,caption="基于百度指数的线性回归预测")
 
