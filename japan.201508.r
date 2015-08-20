@@ -90,17 +90,17 @@ print(p2)
 #===========================================================
 # Check if we can use the Y2Y method to predict
 
-p<- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(5:target.mon)), aes(year, arrival))
+p<- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon)), aes(year, arrival))
 p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
   labs(title="JP History Tourist Number Groupby Month")
 print(p1)
 
-p<- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(5:target.mon)), aes(year, diff12))
+p<- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon)), aes(year, diff12))
 p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
   labs(title="JP Y2Y Diff Groupby Month")
 print(p1)
 
-p<- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(5:target.mon)), aes(year, diff12/arrival12))
+p<- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon)), aes(year, diff12/arrival12))
 p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
   labs(title="JP Y2Y Diff/arrival12 Groupby Month")
 print(p1)
@@ -854,12 +854,13 @@ p2=p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour 
 print(p2)
 
 #---------------------------------------Y2Y group by month--------------------------------------------
-p<- ggplot(filter(jp,year %in% c(2002:target.year),month %in% c(4:target.mon)), aes(year, arrival))
+p<- ggplot(filter(jp,year %in% c(2010:target.year),month %in% c(3:target.mon)), aes(year, arrival))
 p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
   labs(title="JP History Tourist Number Groupby Month")
 print(p1)
 
-p<- ggplot(filter(jp,year %in% c(2002:target.year),month %in% c(4:target.mon)), aes(year, diff12))
+#p<- ggplot(filter(jp,year %in% c(2010:target.year),month %in% c(3:target.mon)), aes(year, diff12))
+p<- ggplot(filter(jp,year %in% c(2010:target.year),month %in% c(3,4,8)), aes(year, diff12))
 p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
   labs(title="JP Y2Y Diff Groupby Month")
 print(p1)
@@ -867,12 +868,12 @@ print(p1)
 
 
 #---------------------------------------M2M group by year--------------------------------------------
-p <- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon)), aes(month, arrival))
+p <- ggplot(filter(jp,year %in% c(2010:target.year),month %in% c(4:target.mon)), aes(month, arrival))
 p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+
   labs(title="JP Tourist Number Groupby Year")
 print(p1)
 
-p <- ggplot(filter(jp,year %in% c(2008:target.year),month %in% c(4:target.mon)), aes(month, diff))
+p <- ggplot(filter(jp,year %in% c(2010:target.year),month %in% c(4:target.mon)), aes(month, diff))
 p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+
   labs(title="JP M2M Groupby Year")
 print(p1)
