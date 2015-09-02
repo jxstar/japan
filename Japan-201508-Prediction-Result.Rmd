@@ -1,0 +1,69 @@
+---
+title: "Japan-201508-Prediction-Result"
+author: "小新"
+date: "2015年9月2日"
+output: html_document
+---
+
+
+#  2015年8月Japan预测:550977人
+
+
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
+library(quantmod)
+library(leaps)
+library(Hmisc) #describe
+library(psych) #describe
+library(GPArotation)
+library(pastecs) #stat.desc
+library(corrgram) # for corralation analysis
+library(gvlma)
+library(car)
+library(relaimpo)
+
+library(xlsx)
+library(RSQLite)
+library(RMySQL)
+
+library(ggplot2) #add for ggplot
+library(reshape2)
+library(dplyr)
+
+target.time=as.POSIXlt("2015-08-01")
+target.mon=target.time$mon+1
+target.year=target.time$year+1900
+(gcol=paste("m", 1:target.mon, sep=""))
+(tm=paste("m",target.mon,sep=""))
+(um=paste("m",target.mon-1,sep=""))
+gmethod=c("Direct LR","1st Order Diff", "Y2Y Diff12 LR","Y2Y Diff12 1st Diff",
+          "M2M 1st Order Diff LR","1st Order Diff Mean","M2M 2nd Order Diff","Baidu Index LR")
+gstatus=c("Perfect", "Good", "Conservative","Normal", "Poor", "Singular")
+gadopted=c("Y", "N")
+
+
+load("Japan-Prediction-result-2015-08-01.Rdata")
+#knitr::kable(benchmark[,c(2,3,8,9,10,12,13,14)],caption=paste("最终预测结果汇总表", as.Date(target.time),sep=""))
+```
+
+
+`r knitr::kable(tjp,caption=paste(as.Date(target.time),"JP Result Analysis"))`
+
+```{r, echo=FALSE,results='hide',message=FALSE,warning=FALSE, cache=F}
+
+p <- ggplot(jp, aes(month, arrival))
+p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6) + 
+  geom_point(aes(colour = factor(year)))+labs(title="JP History Overview Groupby Year")
+print(p1)
+
+
+#---------------------------------------Y2Y group by month--------------------------------------------
+p<- ggplot(filter(jp,year %in% c(2010:target.year),month %in% c(3:target.mon)), aes(year, arrival))
+p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
+  labs(title="JP History Tourist Number Groupby Month")
+print(p1)
+
+
+
+
+```

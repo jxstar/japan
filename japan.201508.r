@@ -109,7 +109,7 @@ print(p1)
 #===========================================================
 # prepare the data ready to use
 #2003 year is quite special
-cmbjp=select(filter(jp,year %in% c(2008:target.year),month %in% c(1:target.mon)),year,month,arrival)
+cmbjp=select(filter(jp,year %in% c(2009:target.year),month %in% c(1:target.mon)),year,month,arrival)
 meltjp=melt(cmbjp,id=c("year","month"))
 
 #cast the data as year id and produce m1a2,m34
@@ -142,7 +142,7 @@ dmpjp
 (hcor.LR=cor(dmjp[,which(names(dmjp)==gcol[target.mon])],dmjp[,-c(1,which(names(dmjp)==tm))],use="na.or.complete"))
 #[ ]3.3 Diff12 LR: Diff12(M4)-->Diff12(M8): 0.9935791
 (hcor.Diff=cor(dmpjp[-nrow(dmpjp),which(names(dmpjp)==gcol[target.mon])],dmpjp[-nrow(dmpjp),-1],use="na.or.complete"))
-(hcor.LR-hcor.Diff)
+
 knitr::kable(as.data.frame(hcor.LR),caption="Y2Y M7 Coefficient Correlation")
 knitr::kable(as.data.frame(hcor.Diff),caption="Y2Y Diff12（M7）Coefficient Correlation")
 #vcor no year is quite correlated
@@ -154,10 +154,17 @@ knitr::kable(as.data.frame(hcor.Diff),caption="Y2Y Diff12（M7）Coefficient Cor
 #[ ]3.2 1st order diff: M2015.7-M2014.7=M2015.6-M2014.6
 #[ ]3.3 Diff12 LR: Diff12(M6)-->Diff12(M7)
 #[ ]3.4 Diff12 1st order diff(2nd order diff):Diff12(2015.7)-Diff12(2014.7)=Diff12(2015.6)-Diff12(2015.6)
+
+p<- ggplot(filter(jp,year %in% c(2009:target.year),month %in% c(4:target.mon)), aes(year, arrival))
+p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
+  labs(title="JP History Tourist Number Groupby Month")
+print(p1)
+(hcor.LR=cor(dmjp[,which(names(dmjp)==gcol[target.mon])],dmjp[,-c(1,which(names(dmjp)==tm))],use="na.or.complete"))
+
 methodology=gmethod[1]
 (usedata=filter(dmjp, year>=2009))
 (tm)
-(um="m67")
+(um="m56")
 (useformula=as.formula(paste(tm, "~", um, sep="")))
 (gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
 
@@ -202,20 +209,20 @@ benchmark=data.frame(date=as.Date(target.time), id="1.1",methdology=methodology,
 #[ ]3.3 Diff12 LR: Diff12(M6)-->Diff12(M7)
 #[ ]3.4 Diff12 1st order diff(2nd order diff):Diff12(2015.7)-Diff12(2014.7)=Diff12(2015.6)-Diff12(2015.6)
 
-(methodology=gmethod[2])
-(usedata=dmjp)
-(tm)
-(um="m56")
-(gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
-
-#sjp.data=(dmjp[,-1]-dmjp[,which(names(dmpjp)==tm)])/dmjp[,which(names(dmpjp)==tm)]
-sjp.data=(dmjp[,-1]-dmjp[,which(names(dmjp)==tm)])/dmjp[,which(names(dmjp)==tm)]
-
-sigma=apply(sjp.data,2,function (x) {return(var(x,na.rm=T))})
+#------select the variable-------
+#sjp.data=(dmjp[,-1]-dmjp[,which(names(dmjp)==tm)])/dmjp[,which(names(dmjp)==tm)]
+sjp.data=(dmjp[,-1]-dmjp[,which(names(dmjp)==tm)])
+sigma=apply(sjp.data,2,function (x) {return(var(scale(x,scale=F),na.rm=T))})
 (sigma=sigma[order(sigma)])
 (p <- ggplot(data=melt(as.data.frame(t(sigma)),id=tm),aes(x=factor(variable),weight=value)) + 
-  geom_bar(position='dodge',fill="grey")+labs(title=paste(gpicname," : (Mx-M7) variance",sep=" ")))
+   geom_bar(position='dodge',fill="grey")+labs(title=paste(gpicname," : (Mx-M7) variance",sep=" ")))
 
+
+(methodology=gmethod[2])
+(usedata=filter(dmjp, year>=2009))
+(tm)
+(um="m67")
+(gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
 
 # m6: M6 Diff 12
 #mean(m7)(without2015)-mean(m6)(without2015)=m7(2015)-m6(2015)
@@ -253,6 +260,12 @@ resplot(dmjp,predict.result)
 #[ ]3.2 1st order diff: M2015.7-M2014.7=M2015.6-M2014.6
 #[*]3.3 Diff12 LR: Diff12(M6)-->Diff12(M7)
 #[ ]3.4 Diff12 1st order diff(2nd order diff):Diff12(2015.7)-Diff12(2014.7)=Diff12(2015.6)-Diff12(2015.6)
+p<- ggplot(filter(jp,year %in% c(2010:target.year),month %in% c(4,5,6,7,8)), aes(year, diff12))
+p1 <- p + geom_line(aes(colour = factor(month)), alpha = 0.6)+geom_point(aes(colour = factor(month)))+
+  labs(title="JP Y2Y Diff Groupby Month")
+print(p1)
+
+(hcor.Diff=cor(dmpjp[-nrow(dmpjp),which(names(dmpjp)==gcol[target.mon])],dmpjp[-nrow(dmpjp),-1],use="na.or.complete"))
 
 (methodology=gmethod[3])
 (usedata=filter(dmpjp, year>=2010))
@@ -266,7 +279,7 @@ resplot(dmjp,predict.result)
 
 ufit=lm(useformula,data=na.omit(usedata))
 (smfit=summary(ufit))
-(predict.result=predict(ufit,newdata=usedata[which(usedata$year==target.year),])+dmjp[which(usedata$year==(target.year-1)),tm])
+(predict.result=predict(ufit,newdata=usedata[which(usedata$year==target.year),])+dmjp[which(dmjp$year==(target.year-1)),tm])
 usedata[which(usedata$year==target.year),tm]=predict(ufit,newdata=usedata[which(usedata$year==target.year),])
 usedata$prediction=predict(ufit,newdata=usedata)
 usedata$error=(usedata$prediction-usedata[,tm])/dmjp[which(dmjp$year>=2010),tm]
@@ -289,12 +302,12 @@ print(p1)
 
 er=range((usedata[,tm]-usedata$prediction),na.rm = T)
 benchmark[which(gmethod==methodology),]=
-  data.frame(date=as.Date(target.time),id="2.1",methdology=methodology, target=paste(tm,"(2015-2014)",sep = ""), dependent=um,
+  data.frame(date=as.Date(target.time),id="2.1",methdology=methodology, target=paste(tm,"(D12)",sep = ""), dependent=paste(um,"(D12)",sep = ""),
              floor=predict.result+er[1],cap=predict.result+er[2], bestguess=predict.result,
              correlation=max(hcor.Diff,na.rm = T), adjR2=smfit$adj.r.squared,variance=NA,maxError=max(abs(usedata$error),na.rm=T),
-             status="Singular", adopted="Y",stringsAsFactors = F, row.names=NULL)
+             status="Normal", adopted="Y",stringsAsFactors = F, row.names=NULL)
 (benchmark)
-knitr::kable(benchmark,caption="Y2Y Diff12 线性回归预测")
+#knitr::kable(benchmark,caption="Y2Y Diff12 线性回归预测")
 resplot(dmjp,predict.result)
 
 
@@ -306,18 +319,20 @@ resplot(dmjp,predict.result)
 #[ ]3.3 Diff12 LR: Diff12(M6)-->Diff12(M7)
 #[*]3.4 Diff12 1st order diff(2nd order diff):Diff12(2015.7)-Diff12(2014.7)=Diff12(2015.6)-Diff12(2015.6)
 #Diff12(2015.7)-Diff12(2014.7)=Diff12(2015.6)-Diff12(2014.6)
+
+sjp.data=(dmpjp[,-1]-dmpjp[,which(names(dmpjp)==tm)])
+sigma=apply(sjp.data,2,function (x) {return(var(scale(x,scale=F),na.rm=T))})
+(sigma=sigma[order(sigma)])
+(p <- ggplot(data=melt(as.data.frame(t(sigma)),id=tm),aes(x=factor(variable),weight=value)) + 
+   geom_bar(position='dodge',fill="grey")+labs(title=paste(gpicname," : (Diff12 Mx- Diff12 M7) variance",sep=" ")))
+
 (methodology=gmethod[4])
 (usedata=dmpjp)
 (usedata=filter(dmpjp, year>=2010))
 (tm)
-(um="m3")
+(um="m4")
 (gpicname=paste("[",which(gmethod==methodology),"]",methodology, ":", um, "-->", tm, sep=" "))
 
-sjp.data=(dmpjp[,-1]-dmpjp[,which(names(dmpjp)==tm)])/dmpjp[,which(names(dmpjp)==tm)]
-sigma=apply(sjp.data,2,function (x) {return(var(x,na.rm=T))})
-(sigma=sigma[order(sigma)])
-(p <- ggplot(data=melt(as.data.frame(t(sigma)),id=tm),aes(x=factor(variable),weight=value)) + 
-  geom_bar(position='dodge',fill="grey")+labs(title=paste(gpicname," : (Diff12 Mx- Diff12 M7) variance",sep=" ")))
 
 # m6: M6 Diff 12
 #mean(m7)(without2015)-mean(m6)(without2015)=m7(2015)-m6(2015)
@@ -326,10 +341,10 @@ sigma=apply(sjp.data,2,function (x) {return(var(x,na.rm=T))})
 #                    usedata[-which(usedata$year==target.year),um])+usedata[which(usedata$year==target.year),um]
 
 predict.result=usedata[which(usedata$year==(target.year-1)),tm]-usedata[which(usedata$year==(target.year-1)),um]+
-  usedata[which(usedata$year==target.year),um]+dmjp[which(usedata$year==(target.year-1)),tm]
+  usedata[which(usedata$year==target.year),um]+dmjp[which(dmjp$year==(target.year-1)),tm]
 
 prange=range(usedata[-which(usedata$year==(target.year)),tm]-usedata[-which(usedata$year==(target.year)),um]+
-               usedata[which(usedata$year==target.year),um],na.rm=T)+dmjp[which(usedata$year==(target.year-1)),tm]
+               usedata[which(usedata$year==target.year),um],na.rm=T)+dmjp[which(dmjp$year==(target.year-1)),tm]
 
 #Diff12(2015.7)=Diff12(2014.7)-Diff12(2014.6)+Diff12(2015.6)
 
@@ -340,7 +355,7 @@ usedata$error=(usedata$prediction-usedata[,tm])/dmjp[which(dmjp$year>=2010),tm]
   geom_bar(position='dodge')+labs(title=paste(gpicname, ": ERROR",sep=" "), x="YEAR", y="ERROR"))
 
 benchmark[which(gmethod==methodology),]=
-  data.frame(date=as.Date(target.time),id="2.2",methdology=methodology, target=paste(tm,"(2015-2014)",sep = ""), dependent=um,
+  data.frame(date=as.Date(target.time),id="2.2",methdology=methodology, target=paste(tm,"(D12)",sep = ""), dependent=paste(um,"(D12)",sep = ""),
              floor=prange[1], cap=prange[2], bestguess=predict.result,
              correlation=NA, adjR2=NA,variance=min(sigma[-1],na.rm = T),maxError=max(abs(usedata$error),na.rm=T),
              status="Normal", adopted="Y",stringsAsFactors = F, row.names=NULL)
@@ -378,7 +393,7 @@ resplot(dmjp,predict.result)
 
 #===========================================================
 # Overview 
-p<- ggplot(filter(jp,year %in% c(2012:target.year),month %in% c(4:target.mon)), aes(month, arrival))
+p<- ggplot(filter(jp,year %in% c(2009:target.year),month %in% c(4:target.mon)), aes(month, arrival))
 p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+
   labs(title="jp Number Groupby year")
 print(p1)
@@ -402,7 +417,7 @@ print(p1)
 
 #===========================================================
 # Prepare the data
-diff1=select(filter(jp,year %in% c(2008:target.year),month %in% c(1:target.mon)),year,month,diff)
+diff1=select(filter(jp,year %in% c(2009:target.year),month %in% c(1:target.mon)),year,month,diff)
 diff1=melt(diff1,id=c("year","month"))
 diff1=dcast(diff1,year~month+variable)
 names(diff1)=c("year",gcol)
@@ -416,7 +431,15 @@ names(diff1)=c("year",gcol)
 #[ ]4.3 2nd order diff: D2015.7-D2014.7=D2015.6-D2014.6
 # First Order with Linear Regression : M7=approximated diff1 + M6
 # approximated diff1(M7-M6)=LR(M6)
+#-----------2014 is the best for coefficient correlation----------------------
+(vcor=cor(t(dmjp[which(dmjp$year==target.year),gcol[3:length(gcol)]]),t(dmjp[,gcol[3:length(gcol)]]),use="na.or.complete"))
+p<- ggplot(filter(jp,year %in% c(2013,2014,2015),month %in% c(4:target.mon)), aes(month, arrival))
+p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6)+geom_point(aes(colour = factor(year)))+
+  labs(title="jp Number Groupby year")
+print(p1)
+#-----------2014 is the best for coefficient correlation----------------------
 
+dmjp
 methodology=gmethod[5]
 (tm)
 (um="m7")
@@ -472,7 +495,7 @@ benchmark[which(gmethod==methodology),]=
              correlation=max(abs(hcor.dmjp),na.rm = T), adjR2=smfit$adj.r.squared,variance=NA,maxError=max(abs(usedata$error),na.rm=T),
              status="Normal", adopted="Y",stringsAsFactors = F, row.names=NULL)
 (benchmark)
-knitr::kable(benchmark,caption="基于M2M月度一阶差分的线性回归预测")
+#knitr::kable(benchmark,caption="基于M2M月度一阶差分的线性回归预测")
 resplot(dmjp,predict.result)
 
 
@@ -527,7 +550,7 @@ resplot(dmjp,predict.result)
 # Second Order without Linear Regression : Diff M7(2015) - Diff M6(2015)=Diff M7(2014) - Diff M6(2014)
 # D7(2015)=D6(2015)+D7(2014)-D6(2014)
 
-diff2nd=select(filter(jp,year %in% c(2008:target.year),month %in% c(1:target.mon)),year,month,diff2nd)
+diff2nd=select(filter(jp,year %in% c(2009:target.year),month %in% c(1:target.mon)),year,month,diff2nd)
 diff2nd=melt(diff2nd,id=c("year","month"))
 diff2nd=dcast(diff2nd,year~month+variable)
 names(diff2nd)=c("year",gcol)
@@ -651,14 +674,13 @@ hwm[which(hwm$date %in% mars.mon),"mars"]=1
 #2nd: the variables, e.g. lygl1 zyx1  jg newyear
 
 predict.no=1
-usefuldate=hwm[which(hwm$date==as.Date("2014-01-01")):which(hwm$date==as.Date("2015-07-01")),"date"]
-hwm.p=hwm[which(hwm$date==as.Date("2015-07-01")):which(hwm$date==as.Date("2015-07-01")),]
+hwm.p=hwm[which(hwm$date==as.Date("2015-08-01")):which(hwm$date==as.Date("2015-08-01")),]
 
 # choose the best time interval  for  linear regression
 location=c(which(names(hwm)=="jd"):which(names(hwm)=="korea"))
-time.all=c(which(hwm$date==as.Date("2014-01-01")):which(hwm$date==as.Date("2015-06-01")))
-time.2014=c(which(hwm$date==as.Date("2014-01-01")):which(hwm$date==as.Date("2014-06-01")))
-time.2015=c(which(hwm$date==as.Date("2015-01-01")):which(hwm$date==as.Date("2015-06-01")))
+time.all=c(which(hwm$date==as.Date("2014-01-01")):which(hwm$date==as.Date("2015-07-01")))
+time.2014=c(which(hwm$date==as.Date("2014-01-01")):which(hwm$date==as.Date("2014-07-01")))
+time.2015=c(which(hwm$date==as.Date("2015-01-01")):which(hwm$date==as.Date("2015-07-01")))
 time.interval=c(time.2014,time.2015)
 time.range=time.interval
 cor.interval=as.data.frame(cor(hwm[time.interval,"arrival"],hwm[time.interval,location],use="na.or.complete"))
@@ -671,27 +693,18 @@ cor.interval[,order(-cor.interval)]
 #---------------------------------------------------------------------------
 #************determine the interval ****************************************
 #---------------------------------------------------------------------------
-time.range=time.all
-#time.range=time.all
-cat("The Date We Use in this algorithm\n", as.character(hwm[time.range,"date"]),"\n")
-hwm.t=hwm[time.range,]
-
+hwm.t=filter(hwm, date >= as.Date("2015-01-01"))
 
 cat("The correlation of the hotwords we may select:\n")
-hwm.cor=as.data.frame(cor(hwm.t$arrival,hwm.t[,location]),use="na.or.complete")
+hwm.cor=as.data.frame(cor(hwm.t$arrival,hwm.t[,location],use="na.or.complete"))
 hwm.cor[order(-hwm.cor)]
 names(hwm.t[,location])[order(-hwm.cor)]
 corrgram(hwm.t[,location],order=T,lower.panel=panel.shade,upper.panel=panel.pie, text.panel=panel.txt)
 
 
 #5.4 choose the best variable for linear regression
-#test=select(hwm,date,arrival,zyx1,lyqz1,lygl1,gwgl,arrival12,jg,jd1,sp,sumall,korea)
-#test=select(hwm[c(time.range,max(time.range+1)),],date,arrival,zyx1,lyqz1,lygl1,gwgl,arrival12,jg,jd1,sp,sumall,korea)
-names(hwm.t[,location])[order(-hwm.cor)]
-
-test=select(hwm[c(time.range,max(time.range+1)),],date,arrival,
-            lygl1,sp1,zyx1,jg1,sumall1,lyqz1,gwgl1,lygl,arrival12,ly1,jd1,jg,korea)
-test=hwm[,c("date",names(hwm.t[,location])[order(-hwm.cor)])]
+test=select(hwm.t,date,arrival,
+            lygl,lygl1,gwgl,gwgl1,jd,jd1,lyqz1,zyx1,ly1,jg,korea)
 mean.arrival=mean(test$arrival,na.rm=T)
 test[,3:ncol(test)]=apply(test[,3:ncol(test)],2,function (x){
   return(x*mean.arrival/mean(x,na.rm=T))
@@ -743,9 +756,8 @@ if (F){
 #                   holiday+nbmonth+newyear+ctriphotel+ctripreview,data=hwm.t,nbest=3)
 
 names(hwm.t[,location])[order(-hwm.cor)]
-leaps=regsubsets(arrival~lygl1+sp1+zyx1+jg1+sumall1+lyqz1+jd1+jg+newyear,data=hwm.t,nbest=4)
-leaps=regsubsets(arrival~lygl1+zyx1+jg1+jd1+jg+newyear,data=hwm.t,nbest=4)
 leaps=regsubsets(arrival~gwgl+jd1+jg+newyear+mars,data=hwm.t,nbest=4)
+leaps=regsubsets(arrival~gwgl+jd1+jg+lygl+lygl1+gwgl1+newyear+mars,data=hwm.t,nbest=4)
 plot(leaps,scale="adjr2",main="Variables Selection")
 
 
@@ -769,16 +781,17 @@ if(F){
 (um="gwgl")
 
 
-hwfit=lm(arrival~gwgl+newyear+mars,hwm.t)# 40.1
+hwfit=lm(arrival~gwgl+newyear+mars,na.exclude(hwm.t))
+hwfit=lm(arrival~gwgl+newyear,na.exclude(hwm.t))
 
 cat("The predic result:",predict(hwfit,newdata=hwm.p),"\n")
 summary(hwfit)
 sqrt(vif(hwfit))
 
-mse=sum(((fitted(hwfit)-hwm.t$arrival)/hwm.t$arrival)^2)^(1/2)
+mse=sum(((predict(hwfit,newdata=hwm.t)-hwm.t$arrival)/hwm.t$arrival)^2,na.rm=T)^(1/2)
 cat("lag=",lag," mse=",mse,"\n")
-error=(fitted(hwfit)-hwm.t$arrival)/hwm.t$arrival
-hwm.t$predict=fitted(hwfit)
+error=(predict(hwfit,newdata=hwm.t)-hwm.t$arrival)/hwm.t$arrival
+hwm.t$predict=predict(hwfit,newdata=hwm.t)
 hwm.t$error=error
 (p <- ggplot(data=hwm.t,aes(x=factor(month),weight=error,fill=factor(month))) + 
   geom_bar(position='dodge')+labs(title="Linear Regression Error"))
@@ -843,7 +856,7 @@ jp[which(jp$date==as.Date(target.time)),]=transform(jp[which(jp$date==as.Date(ta
 tjp=tail(select(jp,date,thismon=arrival,lastmon=arrival1,lastyear=arrival12,M2M=diff,Y2Y=diff12,mm,yy,korea),13)
 names(tjp)=c("date","Tourists","lastMonth","lastYear", "M2M", "Y2Y","mmratio","yyratio","korea")
 knitr::kable(tjp,caption=paste(as.Date(target.time),"Result Analysis"))
-
+save(file=paste("Japan-Prediction-result-", as.Date(target.time), ".Rdata",sep=""), benchmark, tjp, jp)
 #---------------------------------------overview--------------------------------------------
 p <- ggplot(jp, aes(month, arrival))
 p1 <- p + geom_line(aes(colour = factor(year)), alpha = 0.6) + 
